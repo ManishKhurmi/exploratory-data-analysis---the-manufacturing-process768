@@ -60,6 +60,7 @@ failure_data = pd.read_sql_table('failure_data', engine)
 # Check the head of the failure_data set 
 failure_data.head()
 
+# Step 7 - save the data in a csv format 
 # Export data frame to CSV 
 failure_data.to_csv('failure_data.csv')
 
@@ -78,9 +79,19 @@ class RDSDatabaseConnector(credentials_dict):
                 self.credentials_dict = credentials_dict
 
         
+########################################################################################################################
+# Task 3 
+
+# load the cvs data 
+failure_data = pd.read_csv('failure_data')
+
+# Shape of the data frame 
+failure_data.shape
+
+# Print the head of the data frame 
+failure_data.head()
 
 
-                
                  
 
 
