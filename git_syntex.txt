@@ -1,3 +1,8 @@
+When setting up a repository, it's a good idea to do the following:
+
+1. Create a remote repository
+2. Clone the remote repository into your local machine.
+
 # Current directory
 pwd
 
@@ -44,3 +49,6 @@ ssh-keygen -t rsa -f ~/Desktop/Learning_VSCode/example-key/ -C manish_khurmi@hot
 
 # Using curl to open up downloads, example from Advanced Python -> Debugging -> Notebook -> The following solution (in BASH):
 curl -O https://aicore-files.s3.amazonaws.com/Foundations/Python_Programming/example.py
+
+# deleting a branch on the remote repo 
+git push origin --delete <branch_name>
