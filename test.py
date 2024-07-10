@@ -38,39 +38,6 @@ class DataTransform:
         joined_df = self.df.join(right_df)
         return joined_df
 
-########################################################################################
-###### Step 1 & Step 2 work seperetely 
-########################################################################################
-# This works 
-# Step 1 
-transform = DataTransform(failure_data)
-transform.convert_column_to_category(column_name='Type').info()
-########################################################################################
-# This works 
-# Step 2 
-#Convert 'Type' into Binary Categories
-transform = DataTransform(failure_data)
-type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
-
-# Join the generated 'Type' Categories DF onto the original df
-failure_data = transform.left_join_dataframes(type_dummies)
-failure_data.head()
-failure_data.info()
-####################################################################################
-# The export the data to continue with the df 
-def export_data_as_csv(data, file_name):
-    '''
-    Exports data as .csv file
-    '''
-    data.to_csv(f"{file_name}.csv")
-
-export_data_as_csv(failure_data, 'failure_data_after_data_transformation')
-
-########################################################################################
-###### Step 1 & Step 2 DO NOT work seperetely
-########################################################################################
-# TODO: Get the Step 1 & Step 2 working together 
-
 transform_1 = DataTransform(failure_data)
 
 # Step 1) Convert the dtype for 'Type' into categories 
@@ -82,7 +49,9 @@ failure_data_1.info()
 # Step 2a) Convert 'Type' into Dummy (Binary) Categories
 # Create an instance using the updated data failure_data_1
 transform_2 = DataTransform(failure_data_1)
-type_dummies = transform_2.create_dummies_from_column(failure_data_1['Type']) 
+type_dummies = transform_2.create_dummies_from_column(failure_data_1['Type'])
+failure_data_1
+type_dummies 
 
 # Step 2b) 
 # Join the generated 'Type' Categories DF onto the original df
@@ -90,5 +59,24 @@ type_dummies = transform_2.create_dummies_from_column(failure_data_1['Type'])
 failure_data_2 = transform_2.left_join_dataframes(type_dummies)
 failure_data_2.head()
 failure_data_2.info()
+#transform_2.left_join_dataframes()
 
+########################################################################################
+# Step 1
+transform = DataTransform(failure_data)
+transform.convert_column_to_category(column_name='Type')
+
+type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
+transform.left_join_dataframes(type_dummies)
+
+########################################################################################
+# This works 
+# Step 2 
+#Convert 'Type' into Binary Categories
+type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
+
+# Join the generated 'Type' Categories DF onto the original df
+failure_data = transform.left_join_dataframes(type_dummies)
+failure_data.head()
+failure_data.info()
 
