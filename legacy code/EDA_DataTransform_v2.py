@@ -34,9 +34,51 @@ class DataTransform:
         dummies_df = pd.get_dummies(column, dtype= int)
         return dummies_df 
     
-    def left_join_dataframes(self, right_df):
-        joined_df = self.df.join(right_df)
+    def left_join_dataframes(self, right_df, left_index=True, right_index=True):
+        '''
+        This functions joins on the index of the LEFT DataFrame
+        '''
+        joined_df = pd.merge(self.df, right_df, left_index=True, right_index=True)
         return joined_df
+
+# Research how the left join works, the problem is likely to be the index that it is joining on
+
+# Testing left_join_dataframes 
+
+# def left_join_dataframes(left_df, right_df):
+#     '''
+#     This functions joins on the index of the LEFT DataFrame
+#     '''
+#     joined_df = pd.merge(left_df, right_df, left_index=True, right_index=True)
+#     return joined_df
+
+
+#joined_df = pd.merge(left_df, right_df, left_index=True, right_index=True)
+#joined_df
+
+# This works 
+# Step 2 
+#Convert 'Type' into Binary Categories
+transform = DataTransform(failure_data)
+type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
+
+# Join the generated 'Type' Categories DF onto the original df
+failure_data = transform.left_join_dataframes(type_dummies)
+failure_data.head()
+#failure_data.info()
+transform.left_join_dataframes() # Success 
+
+# Try Step 1
+
+transform = DataTransform(failure_data)
+transform.convert_column_to_category(column_name='Type').info()
+
+
+# Try together 
+type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
+
+transform.left_join_dataframes(type_dummies) # chaining doesn't work 
+
 
 ########################################################################################
 ###### Step 1 & Step 2 work seperetely 
@@ -52,10 +94,22 @@ transform.convert_column_to_category(column_name='Type').info()
 transform = DataTransform(failure_data)
 type_dummies = transform.create_dummies_from_column(failure_data['Type']) 
 
+type_dummies.sum()
+
 # Join the generated 'Type' Categories DF onto the original df
 failure_data = transform.left_join_dataframes(type_dummies)
 failure_data.head()
 failure_data.info()
+####################################################################################
+# Trying steps 1 & 2 together as a chain
+
+transform = DataTransform(failure_data)
+
+# first create dummies of the 'Type' variables
+type_dummies = transform.create_dummies_from_column('Type')
+
+transform.left_join_dataframes('type_dummies').convert_column_to_category(column_name='Type')
+
 ####################################################################################
 # The export the data to continue with the df 
 def export_data_as_csv(data, file_name):
@@ -84,11 +138,36 @@ failure_data_1.info()
 transform_2 = DataTransform(failure_data_1)
 type_dummies = transform_2.create_dummies_from_column(failure_data_1['Type']) 
 
+
 # Step 2b) 
 # Join the generated 'Type' Categories DF onto the original df
 #transform_2.left_join_dataframes(type_dummies)
 failure_data_2 = transform_2.left_join_dataframes(type_dummies)
 failure_data_2.head()
 failure_data_2.info()
+
+
+# test 
+df_1 = failure_data_1.head()
+df_2 = type_dummies.head()
+
+# TODO
+
+joined_df = pd.merge(df_1, df_2, how = 'left', left_index=True)
+joined_df
+
+transform_test = DataTransform(df_1)
+#transform_test.left_join_dataframes(df_2) # Fails
+
+# Test the left_join_dataframe func 
+def left_join_dataframes(left_df, right_df):
+    joined_df = left_df.join(right_df)
+    return joined_df
+
+left_join_dataframes(df_1, df_2) 
+
+
+
+
 
 

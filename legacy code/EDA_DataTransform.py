@@ -38,8 +38,8 @@ class DataTransform:
         joined_df = self.df.join(right_df)
         return joined_df
 
-# # Create an instance 
-#transform = DataTransform(failure_data)
+# Create an instance 
+transform = DataTransform(failure_data)
 
 # # Testing the Class Methods 
 
@@ -54,9 +54,9 @@ class DataTransform:
 # transform.create_dummies_from_column(failure_data['Type']) # Success
 
 # transform.convert_column_to_category(failure_data['Type'])
-# # Testing join 
-# type_dummies = transform.create_dummies_from_column(failure_data['Type']) # Success 
-# transform.left_join_dataframes(type_dummies) # Success 
+# Testing join 
+type_dummies = transform.create_dummies_from_column(failure_data['Type']) # Success 
+transform.left_join_dataframes(type_dummies) # Success 
 
 ########################################################################################
 
