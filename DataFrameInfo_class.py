@@ -45,3 +45,12 @@ information.describe_statistics()
 information.unique_value_count('UDI')
 information.percentage_of_null()
 information.are_all_observations_unique('H')
+
+failure_data.columns
+# Look at only variable that are 
+null_variable_bool = information.percentage_of_null() > 0
+information.percentage_of_null()[null_variable_bool]
+
+failure_data[['']]
+
+
