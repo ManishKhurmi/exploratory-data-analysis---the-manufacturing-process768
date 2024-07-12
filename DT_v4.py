@@ -30,7 +30,7 @@ class DataTransform:
         dummies_df = pd.get_dummies(self.df[column_name], dtype=int)
         return dummies_df 
 
-    def left_join_dataframes(self, new_df, left_index=True, right_index=True):
+    def concat_dataframes(self, new_df, left_index=True, right_index=True):
         '''
         This functions joins on the index of the LEFT DataFrame
         '''
@@ -68,8 +68,7 @@ if __name__=='__main__':
     # Test 
     df1 = transform.create_dummies_from_column('Type')
     print(df1)
-    joined_df = transform.left_join_dataframes(df1)
+    joined_df = transform.concat_dataframes(df1)
     print(joined_df)
-
     joined_df.info()
 

@@ -84,3 +84,17 @@ if __name__=='__main__':
     # encode the categorical using SK-Learn
     # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OrdinalEncoder.html#sklearn.preprocessing.OrdinalEncoder
 
+# Notes 
+# EDA - excel viewer 
+# Use better variable_names 
+# For the misc files add them to the gitignore
+# Learing - Don't turn a mountain from a molehill! - When comes to learning productionalised code, worry about that in that when the time comes. 
+    # After the call with with Vander it was clear that thinking of how to productionalise the code for this task is not a great approach 
+    # A better approach is to get the code to work and then move forward
+        # for example: creating objects of the class instances to get the analysis solved rather than worrying about perfecting the class code.
+# Get used to using BASH to run the python files
+# use the if __name__==__main__: constructor 
+# Create good variable names (regularly) through out the code to avoid the problem of over-writing objects in analysis, particularly when creating functions.
+# Classes are used to call the functions faster and will power the EDA notebook later on 
+# regular testing helps to write good code 
+# Focus on the aim at all times, my aim was to write good production level code which is not the aim of the project which was EDA 
