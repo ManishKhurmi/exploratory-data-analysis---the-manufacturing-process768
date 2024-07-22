@@ -1,12 +1,10 @@
 # MISSING Data Analayis
-import pandas as pd 
 import DataFrameInfo_class as info
+import pandas as pd 
 from scipy.stats import normaltest 
 from statsmodels.graphics.gofplots import qqplot 
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-
 
 failure_data = pd.read_csv('failure_data_after_data_transformation.csv')
 
@@ -36,36 +34,21 @@ class Plotter:
     def print_median(self, column_name):
         print(f'The median of {column_name} is {self.df[column_name].median()}')
 
-# Testing 
-# plotter = Plotter(failure_data)
-# plotter.plot_qq('Air temperature [K]')
-# plotter.print_mean('Air temperature [K]')
-# plotter.print_mode('Air temperature [K]')
-
-# Test normal_test
-# plotter = Plotter(failure_data)
-# plotter.normal_test('Air temperature [K]')
-
-# Test plot_hist 
-# plotter = Plotter(failure_data)
-# plotter.plot_hist('Air temperature [K]')
-columns_with_null_names
-
-# failure_data.head()
-# failure_data.info()
-
+################################################################################################
 
 information = info.DataFrameInfo(failure_data)
 
-
+# column names 
 failure_data.columns
-# Filter for columns with null values 
+# Percentage of Nulls per column 
 null_variable_bool = information.percentage_of_null() > 0
 percentage_of_nulls_per_column = information.percentage_of_null()[null_variable_bool]
 percentage_of_nulls_per_column
+
+
 columns_with_null_names = percentage_of_nulls_per_column.index.tolist()
 columns_with_null_names
-
+################################################################################################
 # MCAR / MAR / NMAR ?
 # Are the missing values mostly along a certain 'Type' of product? 
     # boolean on null values
@@ -120,7 +103,7 @@ failure_data['Type'].value_counts() / len(failure_data) * 100
 
 # Go ahead with further analysis 
 ##########################################################################################
-# test the normalist of each column of interest 
+# Visual Plots for to see if the data is Normally Distributed 
 
 # plot a histogram for 'Air temperature'
 failure_data['Air temperature [K]'].hist(bins = 40)
@@ -193,7 +176,8 @@ tool_wear_range
 failure_data['Tool wear [min]'].describe()
 
 ##################################################################################################################################
-# Data Transformation decision
+# Data Transformations decision
+# TODO: update the DataTransform Class so that it may perfom the following
     # Given the that the range is quite large. I would consider imputing based on the average of 'Tool wear [min]' split by Types. 
         # However in the interest of time,  given that this variable only has 4% of missing data and the data set is statistically large, we can drop these rows 
 
@@ -218,23 +202,35 @@ percentage_of_nulls_per_column
 
 failure_data.dropna(subset='Tool wear [min]', inplace=True)
 
-failure_data
+failure_data_after_transformations = failure_data
 # worked 
 ##############################################################################
 # check that the chi-squared test & normality test I conducted have the same null hypothesis
     # the fact that p-values for the columns with NULL values are 0 could mean that it is not in favour of the data being MCAR based on the above 
 
 ##############################################################################
+plotter_after_DT = Plotter(failure_data_after_transformations )
+info_after_DT = info.DataFrameInfo(failure_data_after_transformations)
+info_after_DT.return_info()
 
 # check the balance of the data set for `machine failure` variable.
+sns.countplot(failure_data_after_transformations['Machine failure'])
+
+failure_data_after_transformations['Machine failure'].value_counts()
+
+sns.countplot()
+sns.countplot(failure_data_after_transformations['Machine failure'].value_counts())
+
     # do this is with a bar chart 
 # Do a correlation matrix of all numerical variables, where the dependant (y) variable is 'machine failure' 
+
 # categorical plots 
 # correcting the skew - do this first for the independant variables that have the highest correlation 
 # count plots of our nominal category data (those with binary data)
 # summary plots - pairplot 
 
-
+# create a bar plot of purpose vs amount
+sns.barplot(data=failure_data_after_transformations['Machine failure'])
 
 
 

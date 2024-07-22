@@ -39,7 +39,7 @@ class DataFrameInfo:
 failure_data  = pd.read_csv('failure_data_after_data_transformation.csv')
 
 if __name__ == '__main__':
-    
+
 # Create an Instance 
     information = DataFrameInfo(failure_data)
 
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     null_variable_bool = information.percentage_of_null() > 0
     information.percentage_of_null()[null_variable_bool]
 
-    failure_data[['']]
+    #failure_data[['']]
 
 
