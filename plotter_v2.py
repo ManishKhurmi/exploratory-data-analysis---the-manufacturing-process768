@@ -221,6 +221,7 @@ failure_data_after_transformations['Machine failure'].value_counts()
 sns.countplot()
 sns.countplot(failure_data_after_transformations['Machine failure'].value_counts())
 
+# check the balance of the data set for `machine failure` variable.
     # do this is with a bar chart 
 # Do a correlation matrix of all numerical variables, where the dependant (y) variable is 'machine failure' 
 
@@ -229,8 +230,9 @@ sns.countplot(failure_data_after_transformations['Machine failure'].value_counts
 # count plots of our nominal category data (those with binary data)
 # summary plots - pairplot 
 
-# create a bar plot of purpose vs amount
-sns.barplot(data=failure_data_after_transformations['Machine failure'])
+
+
+# TODO populate the plotter_v3 notebook using the analysis in this script
 
 
 

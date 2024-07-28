@@ -1,0 +1,6 @@
+Use Classes & Methods to make the EDA process more efficient 
+Use .ipynb files for visualisation & analysis 
+label variables well to ensure there are not overwriting issues in the code 
+
+
+
