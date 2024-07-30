@@ -72,3 +72,8 @@ if __name__=='__main__':
     print(joined_df)
     joined_df.info()
 
+
+# Data transformations 
+ # Type -> categories 
+ # create dummies of the Type data 
+ # treat for null data 

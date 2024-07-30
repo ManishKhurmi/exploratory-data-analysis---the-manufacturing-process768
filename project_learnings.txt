@@ -1,6 +1,27 @@
 Use Classes & Methods to make the EDA process more efficient 
 Use .ipynb files for visualisation & analysis 
 label variables well to ensure there are not overwriting issues in the code 
+create seperate scripts for testing classes when needed, have a main script that shows the whole thought process
 
+Are measures of Skewness useful for Binary Data? Elaborate on your answer.
+- Binary data is another form of categorical data, to which measures of skew are not very useful. 
+- Instead use measures of frequency. 
+- Might be worthwhile looking at logistic regression for modelling the relationship between the binary dependant variable and one or more independant variables.
+- Measures of skew are however useful for continous data. 
 
+Learn the theory behind the normality & skewness tests
 
+When applyting data transformation steps e.g. cleaning, correcting for skewness, 
+- create a copy of the data frame & rename the variables. This ensures reproducability. As a check, re-run the code block. 
+- check for null values as a result of the transformation. 
+
+Why do I need to include 'self' as a parameter for any method I define in a class?
+- Method binding. As the init parameter is parsed first by python any subsequent method in the class needs to bind with the __init__ func of said class.
+- This binding allows the method to be aware of the instance it is operating on.
+- Even if I do not need access to the information in the __init__ func of a class, I still need to define 'self' as a parameter for any method.
+
+lean code with treating for skewness or other statical methods:
+- perform the whole end-to-end on one parameter first then create functions for classes, to apply the same methods to other parameters 
+
+Project decisions
+- box plots > scatter plots 
