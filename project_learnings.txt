@@ -25,3 +25,28 @@ lean code with treating for skewness or other statical methods:
 
 Project decisions
 - box plots > scatter plots 
+
+
+if a transformation is made on a column. Rename said column. For example if the skewness transformation on air_temp was kept then rename that column 
+
+
+Explain what degrees of freedom (df) is, in the context of statistics?
+- `df` determines the number of values in a calculaiton that are free to vary. 
+- We can think of it as the number of independent pieces of information needed to estimate a statical parameter.
+- Chisquared example: (Number of rows - 1) * (Number of columns - 1)
+-(2 - 1) * (2 - 1) = 1, Therefore 1 df for out 2 x 2 table, knowing the totals for each row and column, we only need 1 cells value to determine all the other values in our table
+
+Explain the concept of a p-value in statistics?
+- The p-value is a number that helps us understand the strength of the evidence against the null hypothesis, which is the assumption that there is no relationship between the variables being studied 
+- A low p-value suggestions strong evidence against the null hypothesis.
+
+What is the Null Hypothesis?
+- The null hypothesis is a well defined statement to test whether there's evidence for a particular effect or association. 
+- (H0): is a statement that there is no affect, no difference, no association between variables. It serves as the starting point for statistical testing.  
+
+
+#### Notes for the project 
+- models that for binary data 
+- is normalising the air temperature worth it? - in correcting for the skew, we lose the meaningful information that the variable contains 
+
+
