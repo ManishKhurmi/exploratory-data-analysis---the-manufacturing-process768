@@ -49,4 +49,6 @@ What is the Null Hypothesis?
 - models that for binary data 
 - is normalising the air temperature worth it? - in correcting for the skew, we lose the meaningful information that the variable contains 
 
+#### How can i create tests so that the issue of labelling data, overighting data etc 
+
 
