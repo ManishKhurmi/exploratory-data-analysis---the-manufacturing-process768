@@ -23,8 +23,15 @@ Why do I need to include 'self' as a parameter for any method I define in a clas
 lean code with treating for skewness or other statical methods:
 - perform the whole end-to-end on one parameter first then create functions for classes, to apply the same methods to other parameters 
 
+############################################################################################################################################
 Project decisions
-- box plots > scatter plots 
+- box plots > scatter plots for looking at outliers 
+- Skew tests & Histograms > Normal test & QQ plot
+- Skew transformation was done for Air temperature, condenced all the values, loss of interpretation and information, this approach does not add much for the model either. 
+
+Search for `EDA Note` in the script to see where to go back and change decision according to model performance
+e.g. ***Strategic EDA decision***: adjust |z| scores.
+############################################################################################################################################
 
 
 if a transformation is made on a column. Rename said column. For example if the skewness transformation on air_temp was kept then rename that column 
@@ -46,9 +53,11 @@ What is the Null Hypothesis?
 
 
 #### Notes for the project 
-- models that for binary data 
+- models that are designed for binary data 
 - is normalising the air temperature worth it? - in correcting for the skew, we lose the meaningful information that the variable contains 
 
 #### How can i create tests so that the issue of labelling data, overighting data etc 
+
+#### 
 
 
