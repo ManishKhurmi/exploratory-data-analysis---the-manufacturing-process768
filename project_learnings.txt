@@ -58,6 +58,10 @@ What is the Null Hypothesis?
 
 #### How can i create tests so that the issue of labelling data, overighting data etc 
 
-#### 
+How to interpret p-values:
+- the 0.05 boundry relates to the tails of a normal distribution. where the y-axis is the probability density function and the x axis is the z-scores. 
+- The x-axis (z-scors) represent the effect of the test statistic is relatively large, large enough that we cannot ignore the effect. Therefore it is deemed to be significant.
+- Understanding the z-scores is key here, they represent (as you get further away from the mean) a larger and larger effect on the dependant variable. 
+- Take the example of testing a new drug. The p-values in the middle or majority of the normal distrubtion represent a mediocure effect of the drug, whereas the tails represent the effect of the test drug being relatively large (95th percentaile), so large that we cannont ignore this new drug.
 
 
