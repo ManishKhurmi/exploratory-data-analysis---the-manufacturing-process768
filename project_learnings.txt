@@ -64,4 +64,5 @@ How to interpret p-values:
 - Understanding the z-scores is key here, they represent (as you get further away from the mean) a larger and larger effect on the dependant variable. 
 - Take the example of testing a new drug. The p-values in the middle or majority of the normal distrubtion represent a mediocure effect of the drug, whereas the tails represent the effect of the test drug being relatively large (95th percentaile), so large that we cannont ignore this new drug.
 
-
+What is the difference between the Chi-squared test and general tests for collinearity?
+- Chi-squared test is designed for 
