@@ -66,3 +66,10 @@ How to interpret p-values:
 
 What is the difference between the Chi-squared test and general tests for collinearity?
 - Chi-squared test is designed for 
+
+when testing for collinearity, I'm using 'VIF'. should the 'r**2' term in the VIF calculation come from a model that predicts the dependant variable using all the independant variables or from a model that predicts the dependant variable using only the variable pairs that I think are correlated?
+- `R^2` term comes from a model that regresses the variable of interest against ALL other variables of interested. 
+why is it a bad idea to use the `R^2` from a model that only regresses the variable of interest on the pairs of variables that might be correlated? 
+- Omitted Variable Bias 
+- incomplete multicolinearity assessment: multicolinearity can arise from the interactions among multiple variables simultaneously
+- Higher-order affects: not just pairs, e.g. a pair that are correlated with a single variable 
