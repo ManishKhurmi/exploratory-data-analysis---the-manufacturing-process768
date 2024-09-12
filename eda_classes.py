@@ -468,14 +468,82 @@ class Plotter:
             ax.set_title('Correlation Heatmap')
 
 ##########################################################################################
-
+# Step 1 
 failure_data = pd.read_csv("failure_data.csv")
 
 dt = DataTransform(failure_data)
-df = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
+failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
 
-print(df.head(2))
-# columns_to_drop = ['Unnamed: 0', 'Product ID']
-# failure_data = failure_data.drop(columns=[col for col in columns_to_drop if col in failure_data.columns], axis=1)
+print(failure_data.head)
 
-# failure_data.head(3)
+# Convert `Type` into dummies & join them onto our original df 
+dt = DataTransform(failure_data)
+type_as_dummies = dt.create_dummies_from_column('Type')
+failure_data = dt.concat_dataframes(type_as_dummies)
+failure_data.info()
+##########################################################################################
+# step 2 - Imputing missing values 
+# Impute NULL values of Air temperature 
+print('Executing: Step 2 Imputing missing values')
+dt = DataTransform(failure_data)
+failure_data['Air temperature [K]'] = dt.impute_column(column_name='Air temperature [K]', method='median')
+
+# Impute NULL values of `Process temperature [K]` using the median
+dt = DataTransform(failure_data)
+failure_data['Process temperature [K]'] = dt.impute_column(column_name='Process temperature [K]', method='mean')
+
+# Impute NULL values of `Tool wear [min]` using the median 
+dt = DataTransform(failure_data)
+failure_data['Tool wear [min]'] = dt.impute_column(column_name='Tool wear [min]', method='median')
+
+# Prove that the new transformed data contails no missing values 
+info_df_without_null = DataFrameInfo(failure_data) # create a print statement here 
+info_df_without_null.percentage_of_null()
+print('Completed: Step 2 Imputing missing values')
+##########################################################################################
+# Step 3 - treating for skewness in `rotational speed` # create a print statement here 
+# Applying Yeo-Johnson Transformation to `Rotational Speed [rpm]`
+print('Executing: Step 3 Treating for Skewness')
+dt = DataTransform(failure_data)
+failure_data['rotational_speed_normalised'] = dt.yeojohnson('Rotational speed [rpm]')
+print('Completed: Step 3 Treating for Skewness')
+
+
+##########################################################################################
+#Step 4: removing outliers 
+print('Executing: Step 4 Removing Outliers')
+dt = DataTransform(failure_data)
+failure_data, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], 
+                                                                                                  key_ID='UDI', 
+                                                                                                  method='IQR',
+                                                                                                  suppress_output=True)
+print('Completed: Step 4 Removing Outliers')
+##########################################################################################
+# Step 5: Dropping columns based on Collinearity
+# possibly drop `RNF` based on chi-squared tests
+
+##########################################################################################
+# proving the changes 
+
+print('\n')
+print('\n')
+print('\nChecks:')
+
+info = DataFrameInfo(failure_data)
+print(info.percentage_of_null())
+print(info.return_shape())
+print(info.column_names())
+
+# visual check of the skewness transformation 
+
+plott = Plotter(failure_data)
+plott.histogram_and_skew_sub_plots(variable_list=['rotational_speed_normalised'], DataFrameInfo_instance=DataFrameInfo(failure_data)) # improve function 
+
+# Visual check that outliers have been removed 
+# plott = Plotter(failure_data)
+
+# List of continuous variables of interest
+continous_variables = ['Air temperature [K]', 'Process temperature [K]', 'rotational_speed_normalised', 'Torque [Nm]', 'Tool wear [min]']
+plott.boxplots(variable_list=continous_variables)
+
+
