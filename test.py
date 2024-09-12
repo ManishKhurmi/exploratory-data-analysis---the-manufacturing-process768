@@ -13,6 +13,8 @@ from IPython.display import display
 from sklearn.preprocessing import StandardScaler
 import DataFrameInfo_class as info
 from itertools import permutations
+import contextlib
+import io
 
 ########################################################################
 class DataTransform:
@@ -96,13 +98,8 @@ class DataTransform:
     def generate_permutations(self, input_list):
         # Generate all permutations of the given length
         return list(permutations(input_list, len(input_list)))
-
-import contextlib
-import io
-import pandas as pd
-
-class DataTransform:
-    def remove_outliers_optimised(self, columns, key_ID='UDI', method='IQR', z_threshold=3):
+    
+    def remove_outliers_optimised(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3], suppress_output=False):
         permutations_result = self.generate_permutations(columns)
 
         combination_percentage_dict = {}
@@ -110,9 +107,15 @@ class DataTransform:
         for i in permutations_result:
             dt = DataTransform(self.df.copy())
             print(f'Testing combination: {list(i)}')
-            
-            # Suppress print statements in the remove_outliers function
-            with contextlib.redirect_stdout(io.StringIO()):
+
+            # If suppress_output is True, suppress print statements in the remove_outliers function
+            if suppress_output:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    filtered_df, percentage_data_loss = dt.remove_outliers(
+                        columns=list(i), key_ID=key_ID, method=method, z_threshold=z_threshold
+                    )
+            else:
+                # Normal execution with print statements
                 filtered_df, percentage_data_loss = dt.remove_outliers(
                     columns=list(i), key_ID=key_ID, method=method, z_threshold=z_threshold
                 )
@@ -129,7 +132,11 @@ class DataTransform:
 
         # Reapply the best combination on the original dataframe
         dt = DataTransform(self.df.copy())
-        with contextlib.redirect_stdout(io.StringIO()):
+        if suppress_output:
+            with contextlib.redirect_stdout(io.StringIO()):
+                best_filtered_df, _ = dt.remove_outliers(columns=list(min_combination), key_ID=key_ID, method=method, z_threshold=z_threshold)
+        else:
+            # Normal execution with print statements
             best_filtered_df, _ = dt.remove_outliers(columns=list(min_combination), key_ID=key_ID, method=method, z_threshold=z_threshold)
 
         # Output the result
@@ -139,6 +146,45 @@ class DataTransform:
 
         # Return the best filtered dataframe
         return best_filtered_df, min_combination, combination_percentage_dict
+
+
+    # def remove_outliers_optimised(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3]):
+    #     permutations_result = self.generate_permutations(columns)
+
+    #     combination_percentage_dict = {}
+
+    #     for i in permutations_result:
+    #         dt = DataTransform(self.df.copy())
+    #         print(f'Testing combination: {list(i)}')
+            
+    #         # Suppress print statements in the remove_outliers function
+    #         with contextlib.redirect_stdout(io.StringIO()):
+    #             filtered_df, percentage_data_loss = dt.remove_outliers(
+    #                 columns=list(i), key_ID=key_ID, method=method, z_threshold=z_threshold
+    #             )
+
+    #         # Store the tuples in a dictionary 
+    #         combination_percentage_dict[i] = percentage_data_loss
+
+    #     # Get the combination with the lowest percentage
+    #     min_combination = min(combination_percentage_dict, key=combination_percentage_dict.get)
+    #     min_value = combination_percentage_dict[min_combination]
+
+    #     # Create a df to print the results 
+    #     combinations_results_df = pd.DataFrame(list(combination_percentage_dict.items()), columns=['combinations', 'percentage_data_loss'])
+
+    #     # Reapply the best combination on the original dataframe
+    #     dt = DataTransform(self.df.copy())
+    #     with contextlib.redirect_stdout(io.StringIO()):
+    #         best_filtered_df, _ = dt.remove_outliers(columns=list(min_combination), key_ID=key_ID, method=method, z_threshold=z_threshold)
+
+    #     # Output the result
+    #     print(f'\nResults:\n {combinations_results_df}')
+    #     print(f'Combination with the lowest data loss: {min_combination}')
+    #     print(f'Lowest percentage data loss: {min_value:.2f}%')
+
+    #     # Return the best filtered dataframe
+    #     return best_filtered_df, min_combination, combination_percentage_dict
 
 
     # def remove_outliers_optimised(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3]):
@@ -300,7 +346,10 @@ class Plotter:
 failure_data_cleaned_unskewed = pd.read_csv('failure_data_step_3_skew_transformations.csv')
 dt = DataTransform(failure_data_cleaned_unskewed)
 
-IQR_best_filtered_df, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], key_ID='UDI', method='IQR')
+IQR_best_filtered_df, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], 
+                                                                                                  key_ID='UDI', 
+                                                                                                  method='IQR',
+                                                                                                  suppress_output=True)
 
 
 
