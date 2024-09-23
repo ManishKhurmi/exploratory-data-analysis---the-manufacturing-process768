@@ -507,8 +507,6 @@ print('Executing: Step 3 Treating for Skewness')
 dt = DataTransform(failure_data)
 failure_data['rotational_speed_normalised'] = dt.yeojohnson('Rotational speed [rpm]')
 print('Completed: Step 3 Treating for Skewness')
-
-
 ##########################################################################################
 #Step 4: removing outliers 
 print('Executing: Step 4 Removing Outliers')
@@ -530,9 +528,9 @@ print('\n')
 print('\nChecks:')
 
 info = DataFrameInfo(failure_data)
-print(info.percentage_of_null())
-print(info.return_shape())
-print(info.column_names())
+print(f'Percentage of null values: {info.percentage_of_null()}')
+print(f'Shape of DataFrame: {info.return_shape()}')
+print(f'Column names: {info.column_names()}')
 
 # visual check of the skewness transformation 
 
