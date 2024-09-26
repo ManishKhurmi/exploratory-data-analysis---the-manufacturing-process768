@@ -583,22 +583,25 @@ class Plotter:
 
 import pandas as pd
 
-def load_and_clean_data(file_path):
+def load_and_clean_data(file_path, drop_columns, convert_column_into_dummy_var): # consider renaming columns here 
+    '''
+    Performs initial cleaning when loading data. 
+    '''
     print("Executing: Step 1 - Loading and Cleaning Data")
     failure_data = pd.read_csv(file_path)
     dt = DataTransform(failure_data)
-    failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
+    failure_data = dt.drop_column(vars=drop_columns)
     
     # Convert `Type` into dummies & join them to the original dataframe
-    type_as_dummies = dt.create_dummies_from_column('Type')
-    failure_data = dt.concat_dataframes(type_as_dummies)
+    dummy_vars = dt.create_dummies_from_column(convert_column_into_dummy_var)
+    failure_data = dt.concat_dataframes(dummy_vars)
     
     print("Completed: Step 1 - Data Loaded and Cleaned")
     return failure_data
 
-def impute_missing_values(failure_data, imputation_dict):
-    print("Executing: Step 2 - Imputing Missing Values")
-    dt = DataTransform(failure_data)
+def impute_missing_values(df, imputation_dict):
+    print("\nExecuting: Step 2 - Imputing Missing Values")
+    dt = DataTransform(df)
     
     for column, method in imputation_dict.items():
         failure_data[column] = dt.impute_column(column_name=column, method=method)
@@ -606,37 +609,39 @@ def impute_missing_values(failure_data, imputation_dict):
     print("Completed: Step 2 - Missing Values Imputed")
     return failure_data
 
-def treat_skewness(failure_data, skew_column):
-    print("Executing: Step 3 - Treating for Skewness")
+def treat_skewness(df, skew_column, rename_new_column):
+    print("\nExecuting: Step 3 - Treating for Skewness")
     dt = DataTransform(failure_data)
-    failure_data[skew_column + '_normalised'] = dt.yeojohnson(skew_column)
+    failure_data[rename_new_column] = dt.yeojohnson(skew_column)
     print("Completed: Step 3 - Skewness Treated")
-    return failure_data
+    return df
 
-def remove_outliers(failure_data, outlier_columns, key_id):
-    print("Executing: Step 4 - Removing Outliers")
-    dt = DataTransform(failure_data)
-    failure_data, _, _ = dt.remove_outliers_optimised(columns=outlier_columns, 
+def remove_outliers(df, outlier_columns, key_id, method = ['IQR', 'z_score'], z_threshold= None, suppress_output=True):
+    print("\nExecuting: Step 4 - Removing Outliers")
+    dt = DataTransform(df)
+    df, _, _ = dt.remove_outliers_optimised(columns=outlier_columns, 
                                                       key_ID=key_id, 
-                                                      method='IQR',
-                                                      suppress_output=True)
+                                                      method=method, # should not be hard coded
+                                                      z_threshold=z_threshold,
+                                                      suppress_output=suppress_output) # should not be hard coded
     print("Completed: Step 4 - Outliers Removed")
-    return failure_data
+    return df
 
-def run_diagnostics(failure_data):
-    print("\n\n\nChecks:")
-    info = DataFrameInfo(failure_data)
+def run_diagnostics(df): # not sure if this is needed yet 
+    print('Running Diagnostics')
+    info = DataFrameInfo(df)
     print(f'Percentage of null values: {info.percentage_of_null()}')
-    print(f'Shape of DataFrame: {info.return_shape()}')
-    print(f'Column names: {info.column_names()}')
+    print(f'\nShape of DataFrame: {info.return_shape()}')
+    print(f'\nColumn names: {info.column_names()}')
     
-def plot_histogram(failure_data, column):
-    plott = Plotter(failure_data)
-    plott.histplot(column=column)
+# def plot_histogram(failure_data, column):
+#     plott = Plotter(failure_data)
+#     plott.histplot(column=column)
 
-# Main workflow
-failure_data = load_and_clean_data("failure_data.csv")
 
+# Step 1 - Main workflow
+failure_data = load_and_clean_data(file_path="failure_data.csv", drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') # too vague 
+print('##############################################################################')
 # Step 2 - Impute missing values
 imputation_dict = {
     'Air temperature [K]': 'median',
@@ -644,16 +649,25 @@ imputation_dict = {
     'Tool wear [min]': 'median'
 }
 failure_data = impute_missing_values(failure_data, imputation_dict)
-
+info = DataFrameInfo(failure_data)
+print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{info.percentage_of_null()}")
+print('##############################################################################')
 # Step 3 - Treat skewness in 'Rotational Speed [rpm]'
-failure_data = treat_skewness(failure_data, 'Rotational speed [rpm]')
-
+info = DataFrameInfo(failure_data)
+print(f"Skew Test before treatement: {info.skew_test('Rotational speed [rpm]')}")
+failure_data = treat_skewness(failure_data, skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
+info = DataFrameInfo(failure_data)
+print(f"\nSkew Test after treatement: {info.skew_test('rotational_speed_normalised')}")
+print('##############################################################################')
 # Step 4 - Remove outliers
+print('Before Removing outliers:')
+print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
+# print('\n')
 outlier_columns = ['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']
-failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI')
+failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI', method='IQR')
+print('After Removing Outliers:')
+print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
+print('##############################################################################')
+# print(failure_data.columns)
 
-# Diagnostics
-run_diagnostics(failure_data)
-
-# # Visual check of skewness transformation
-# plot_histogram(failure_data, 'rotational_speed_normalised')
+print(run_diagnostics(failure_data))
