@@ -307,32 +307,66 @@ class Plotter:
         sns.histplot(self.df[column], kde=kde, ax=ax)
         ax.set_title(f'Histogram for {column}')
 
-    def histogram_and_skew_sub_plots(self, variable_list, DataFrameInfo_instance, num_cols=3):
+    def skew_test(self, column_name):
+        return self.df[column_name].skew()
 
-        #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-        num_vars = len(variable_list)
-        #num_cols = 3  # Define number of columns for the subplot grid
-        num_cols = num_cols  # Define number of columns for the subplot grid
-        num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
+    # def histogram_and_skew_sub_plots(self, variable_list, num_cols=3): #DataFrameInfo_instance
 
-        # fig, axs = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 5))  # Adjust the figsize as needed
-        fig, axs = plt.subplots(num_rows, num_cols, figsize=(16, num_rows * 5))
-        axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
+    #     #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+    #     num_vars = len(variable_list)
+    #     #num_cols = 3  # Define number of columns for the subplot grid
+    #     num_cols = num_cols  # Define number of columns for the subplot grid
+    #     num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
 
-        for idx, column in enumerate(variable_list):
-            ax = axs[idx]
-            # Plot the histogram using the Plotter class's histplot method
-            self.histplot(column, kde=True, ax=ax)
-            # Calculate skewness using the DataInfo class
-            skew_value = DataFrameInfo_instance.skew_test(column_name=column)
-            ax.set_title(f'Skew: {skew_value:.2f}')
+    #     # fig, axs = plt.subplots(num_rows, num_cols, figsize=(10, 10))  # Adjust the figsize as needed
+    #     fig, axs = plt.subplots(num_rows, num_cols, figsize=(16, num_rows * 5))
+    #     axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
 
-        # If there are any unused subplots, hide them
-        for j in range(idx + 1, len(axs)):
-            fig.delaxes(axs[j]) # deletes any unused subplots
-        plt.tight_layout()
-        plt.show()
-        
+    #     for idx, column in enumerate(variable_list):
+    #         ax = axs[idx]
+    #         # Plot the histogram using the Plotter class's histplot method
+    #         self.histplot(column, kde=True, ax=ax)
+    #         # Calculate skewness using the DataInfo class
+    #         skew_value = self.skew_test(column_name=column)
+    #         ax.set_title(f'Skew: {skew_value:.2f}')
+
+    #         # Rotate x-axis labels to avoid overlap
+    #         ax.tick_params(axis='x', rotation=45) #
+
+    #     # If there are any unused subplots, hide them
+    #     for j in range(idx + 1, len(axs)):
+    #         fig.delaxes(axs[j]) # deletes any unused subplots
+    #     plt.tight_layout(pad=3.0) #
+    #     plt.show()
+
+    def histogram_and_skew_sub_plots(self, variable_list, num_cols=3):
+            num_vars = len(variable_list)
+            num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
+
+            fig, axs = plt.subplots(num_rows, num_cols, figsize=(18, num_rows * 5))  # Increased figure width
+            axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
+
+            for idx, column in enumerate(variable_list):
+                ax = axs[idx]
+                # Plot the histogram using the Plotter class's histplot method
+                self.histplot(column, kde=True, ax=ax)
+                # Calculate skewness
+                skew_value = self.skew_test(column_name=column)
+                ax.set_title(f'Histogram of {column}\nSkew: {skew_value:.2f}')
+
+                # Rotate x-axis labels to avoid overlap
+                ax.tick_params(axis='x', rotation=60)  # Rotate x-axis labels by 60 degrees
+
+                # Format x-axis tick labels to avoid scientific notation
+                ax.get_xaxis().get_major_formatter().set_scientific(False)
+
+            # Hide unused subplots if any
+            for j in range(idx + 1, len(axs)):
+                fig.delaxes(axs[j])  # deletes any unused subplots
+
+            # Adjust layout to prevent overlap
+            plt.tight_layout(pad=3.0)  # Adjust padding
+            plt.show()        
     
     def plot_qq(self, column, ax=None):
         if ax is None:
@@ -467,81 +501,159 @@ class Plotter:
             sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
             ax.set_title('Correlation Heatmap')
 
-##########################################################################################
-# Step 1 
-failure_data = pd.read_csv("failure_data.csv")
+# ##########################################################################################
+# # Step 1 
+# failure_data = pd.read_csv("failure_data.csv")
 
-dt = DataTransform(failure_data)
-failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
+# dt = DataTransform(failure_data)
+# failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
 
-print(failure_data.head)
+# print(failure_data.head)
 
-# Convert `Type` into dummies & join them onto our original df 
-dt = DataTransform(failure_data)
-type_as_dummies = dt.create_dummies_from_column('Type')
-failure_data = dt.concat_dataframes(type_as_dummies)
-failure_data.info()
-##########################################################################################
-# step 2 - Imputing missing values 
-# Impute NULL values of Air temperature 
-print('Executing: Step 2 Imputing missing values')
-dt = DataTransform(failure_data)
-failure_data['Air temperature [K]'] = dt.impute_column(column_name='Air temperature [K]', method='median')
+# # Convert `Type` into dummies & join them onto our original df 
+# dt = DataTransform(failure_data)
+# type_as_dummies = dt.create_dummies_from_column('Type')
+# failure_data = dt.concat_dataframes(type_as_dummies)
+# failure_data.info()
+# ##########################################################################################
+# # step 2 - Imputing missing values 
+# # Impute NULL values of Air temperature 
+# print('Executing: Step 2 Imputing missing values')
+# dt = DataTransform(failure_data)
+# failure_data['Air temperature [K]'] = dt.impute_column(column_name='Air temperature [K]', method='median')
 
-# Impute NULL values of `Process temperature [K]` using the median
-dt = DataTransform(failure_data)
-failure_data['Process temperature [K]'] = dt.impute_column(column_name='Process temperature [K]', method='mean')
+# # Impute NULL values of `Process temperature [K]` using the median
+# dt = DataTransform(failure_data)
+# failure_data['Process temperature [K]'] = dt.impute_column(column_name='Process temperature [K]', method='mean')
 
-# Impute NULL values of `Tool wear [min]` using the median 
-dt = DataTransform(failure_data)
-failure_data['Tool wear [min]'] = dt.impute_column(column_name='Tool wear [min]', method='median')
+# # Impute NULL values of `Tool wear [min]` using the median 
+# dt = DataTransform(failure_data)
+# failure_data['Tool wear [min]'] = dt.impute_column(column_name='Tool wear [min]', method='median')
 
-# Prove that the new transformed data contails no missing values 
-info_df_without_null = DataFrameInfo(failure_data) # create a print statement here 
-info_df_without_null.percentage_of_null()
-print('Completed: Step 2 Imputing missing values')
-##########################################################################################
-# Step 3 - treating for skewness in `rotational speed` # create a print statement here 
-# Applying Yeo-Johnson Transformation to `Rotational Speed [rpm]`
-print('Executing: Step 3 Treating for Skewness')
-dt = DataTransform(failure_data)
-failure_data['rotational_speed_normalised'] = dt.yeojohnson('Rotational speed [rpm]')
-print('Completed: Step 3 Treating for Skewness')
-##########################################################################################
-#Step 4: removing outliers 
-print('Executing: Step 4 Removing Outliers')
-dt = DataTransform(failure_data)
-failure_data, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], 
-                                                                                                  key_ID='UDI', 
-                                                                                                  method='IQR',
-                                                                                                  suppress_output=True)
-print('Completed: Step 4 Removing Outliers')
-##########################################################################################
-# Step 5: Dropping columns based on Collinearity
-# possibly drop `RNF` based on chi-squared tests
+# # Prove that the new transformed data contails no missing values 
+# info_df_without_null = DataFrameInfo(failure_data) # create a print statement here 
+# info_df_without_null.percentage_of_null()
+# print('Completed: Step 2 Imputing missing values')
+# ##########################################################################################
+# # Step 3 - treating for skewness in `rotational speed` # create a print statement here 
+# # Applying Yeo-Johnson Transformation to `Rotational Speed [rpm]`
+# print('Executing: Step 3 Treating for Skewness')
+# dt = DataTransform(failure_data)
+# failure_data['rotational_speed_normalised'] = dt.yeojohnson('Rotational speed [rpm]')
+# print('Completed: Step 3 Treating for Skewness')
+# ##########################################################################################
+# #Step 4: removing outliers 
+# print('Executing: Step 4 Removing Outliers')
+# dt = DataTransform(failure_data)
+# failure_data, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], 
+#                                                                                                   key_ID='UDI', 
+#                                                                                                   method='IQR',
+#                                                                                                   suppress_output=True)
+# print('Completed: Step 4 Removing Outliers')
+# ##########################################################################################
+# # Step 5: Dropping columns based on Collinearity
+# # possibly drop `RNF` based on chi-squared tests
 
-##########################################################################################
-# proving the changes 
+# ##########################################################################################
+# # proving the changes 
 
-print('\n')
-print('\n')
-print('\nChecks:')
+# print('\n')
+# print('\n')
+# print('\nChecks:')
 
-info = DataFrameInfo(failure_data)
-print(f'Percentage of null values: {info.percentage_of_null()}')
-print(f'Shape of DataFrame: {info.return_shape()}')
-print(f'Column names: {info.column_names()}')
+# info = DataFrameInfo(failure_data)
+# print(f'Percentage of null values: {info.percentage_of_null()}')
+# print(f'Shape of DataFrame: {info.return_shape()}')
+# print(f'Column names: {info.column_names()}')
 
-# visual check of the skewness transformation 
+# # visual check of the skewness transformation 
 
-plott = Plotter(failure_data)
-plott.histogram_and_skew_sub_plots(variable_list=['rotational_speed_normalised'], DataFrameInfo_instance=DataFrameInfo(failure_data)) # improve function 
+# # plott = Plotter(failure_data)
+# # plott.histogram_and_skew_sub_plots(variable_list=['rotational_speed_normalised']) # improve function, it should not take an instance as an arguement 
 
-# Visual check that outliers have been removed 
+# # Visual check that outliers have been removed 
+# # plott = Plotter(failure_data)
+
+# # List of continuous variables of interest
+# # continous_variables = ['Air temperature [K]', 'Process temperature [K]', 'rotational_speed_normalised', 'Torque [Nm]', 'Tool wear [min]']
+# # plott.boxplots(variable_list=continous_variables)
+
 # plott = Plotter(failure_data)
+# plott.histplot(column='rotational_speed_normalised')
 
-# List of continuous variables of interest
-continous_variables = ['Air temperature [K]', 'Process temperature [K]', 'rotational_speed_normalised', 'Torque [Nm]', 'Tool wear [min]']
-plott.boxplots(variable_list=continous_variables)
+import pandas as pd
 
+def load_and_clean_data(file_path):
+    print("Executing: Step 1 - Loading and Cleaning Data")
+    failure_data = pd.read_csv(file_path)
+    dt = DataTransform(failure_data)
+    failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
+    
+    # Convert `Type` into dummies & join them to the original dataframe
+    type_as_dummies = dt.create_dummies_from_column('Type')
+    failure_data = dt.concat_dataframes(type_as_dummies)
+    
+    print("Completed: Step 1 - Data Loaded and Cleaned")
+    return failure_data
 
+def impute_missing_values(failure_data, imputation_dict):
+    print("Executing: Step 2 - Imputing Missing Values")
+    dt = DataTransform(failure_data)
+    
+    for column, method in imputation_dict.items():
+        failure_data[column] = dt.impute_column(column_name=column, method=method)
+    
+    print("Completed: Step 2 - Missing Values Imputed")
+    return failure_data
+
+def treat_skewness(failure_data, skew_column):
+    print("Executing: Step 3 - Treating for Skewness")
+    dt = DataTransform(failure_data)
+    failure_data[skew_column + '_normalised'] = dt.yeojohnson(skew_column)
+    print("Completed: Step 3 - Skewness Treated")
+    return failure_data
+
+def remove_outliers(failure_data, outlier_columns, key_id):
+    print("Executing: Step 4 - Removing Outliers")
+    dt = DataTransform(failure_data)
+    failure_data, _, _ = dt.remove_outliers_optimised(columns=outlier_columns, 
+                                                      key_ID=key_id, 
+                                                      method='IQR',
+                                                      suppress_output=True)
+    print("Completed: Step 4 - Outliers Removed")
+    return failure_data
+
+def run_diagnostics(failure_data):
+    print("\n\n\nChecks:")
+    info = DataFrameInfo(failure_data)
+    print(f'Percentage of null values: {info.percentage_of_null()}')
+    print(f'Shape of DataFrame: {info.return_shape()}')
+    print(f'Column names: {info.column_names()}')
+    
+def plot_histogram(failure_data, column):
+    plott = Plotter(failure_data)
+    plott.histplot(column=column)
+
+# Main workflow
+failure_data = load_and_clean_data("failure_data.csv")
+
+# Step 2 - Impute missing values
+imputation_dict = {
+    'Air temperature [K]': 'median',
+    'Process temperature [K]': 'mean',
+    'Tool wear [min]': 'median'
+}
+failure_data = impute_missing_values(failure_data, imputation_dict)
+
+# Step 3 - Treat skewness in 'Rotational Speed [rpm]'
+failure_data = treat_skewness(failure_data, 'Rotational speed [rpm]')
+
+# Step 4 - Remove outliers
+outlier_columns = ['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']
+failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI')
+
+# Diagnostics
+run_diagnostics(failure_data)
+
+# # Visual check of skewness transformation
+# plot_histogram(failure_data, 'rotational_speed_normalised')
