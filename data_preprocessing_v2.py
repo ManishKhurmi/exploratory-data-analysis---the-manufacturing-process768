@@ -325,7 +325,7 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
         except Exception as e:
             raise Exception(f"Error loading DataFrame from '{file_path}': {e}")
     
-    def load_and_clean_data(self, drop_columns, convert_column_into_dummy_var): # consider renaming columns here 
+    def initial_load_and_clean_data(self, drop_columns, convert_column_into_dummy_var): # consider renaming columns here 
         '''
         Performs initial cleaning when loading data. 
         Reads csv, drop columns, add dummy variables.
@@ -343,22 +343,19 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
         print("\nCompleted: Step 1 - Data Loaded and Cleaned")
         return self.df
 
-    def impute_missing_values(df, imputation_dict):
-        print("\nExecuting: Step 2 - Imputing Missing Values")
-        dt = DataTransform(df)
-        
+    def impute_missing_values(self, imputation_dict):
+        print("\nExecuting: Step 2 - Imputing Missing Values")        
         for column, method in imputation_dict.items():
-            failure_data[column] = dt.impute_column(column_name=column, method=method)
+            self.df[column] = self.impute_column(column_name=column, method=method)
         
         print("Completed: Step 2 - Missing Values Imputed")
-        return failure_data
+        return self.df
 
-#     def treat_skewness(df, skew_column, rename_new_column): # redundant 
-#         print("\nExecuting: Step 3 - Treating for Skewness")
-#         dt = DataTransform(failure_data)
-#         failure_data[rename_new_column] = dt.yeojohnson(skew_column)
-#         print("Completed: Step 3 - Skewness Treated")
-#         return df
+    def treat_skewness(self, skew_column, rename_new_column): # redundant 
+        print("\nExecuting: Step 3 - Treating for Skewness")
+        self.df[rename_new_column] = self.yeojohnson(skew_column)
+        print("Completed: Step 3 - Skewness Treated")
+        return self.df
 
 # # def remove_outliers(df, outlier_columns, key_id, method = ['IQR', 'z_score'], z_threshold= None, suppress_output=True): # redundant
 # #     print("\nExecuting: Step 4 - Removing Outliers")
@@ -378,15 +375,43 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
 #         print(f'\nShape of DataFrame: {info.return_shape()}')
 #         print(f'\nColumn names: {info.column_names()}')
 
+# Step 1 - Inital load and cleaning
 # failure_data = pd.read_csv('failure_data.csv')
 # preprocessing = DataPreprocessing(failure_data)    
 preprocessing = DataPreprocessing(file_name='failure_data.csv')    
-failure_data = preprocessing.load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
-
-
+failure_data = preprocessing.initial_load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
 print('##############################################################################')
 
-# print(failure_data.columns)
+# Step 2 - Impute missing values 
+imputation_dict = {
+    'Air temperature [K]': 'median',
+    'Process temperature [K]': 'mean',
+    'Tool wear [min]': 'median'
+}
+failure_data = preprocessing.impute_missing_values(imputation_dict)
+print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
+print('##############################################################################')
+
+# Step 3 - Treat skewness in 'Rotational Speed [rpm]'
+print(f"Skew Test before treatement: {preprocessing.skew_test('Rotational speed [rpm]')}")
+failure_data = preprocessing.treat_skewness(skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
+print(f"\nSkew Test after treatement: {preprocessing.skew_test('rotational_speed_normalised')}")
+print('##############################################################################')
+
+# Step 4 - Remove outliers
+# create a variable that stores the desciption of variables that we are treating for outliers.
+column_stats_before_removing_outliers = failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe()
+print('\n')
+outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']
+failure_data = preprocessing.remove_outliers_optimised(outlier_columns,key_ID='UDI', method='IQR', suppress_output=True)
+print('Before Removing outliers:\n')
+
+print(column_stats_before_removing_outliers)
+print('After Removing Outliers:')
+# print(failure_data[['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']].describe())
+failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe()
+
+
 
 # if __name__ == '__main__':
 #     # Step 1 - Main workflow
