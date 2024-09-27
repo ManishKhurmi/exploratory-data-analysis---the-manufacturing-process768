@@ -295,294 +295,6 @@ class DataTransform:
         # Return the best filtered dataframe
         return best_filtered_df, min_combination, combination_percentage_dict
 
-# Plotter Class
-class Plotter:
-    def __init__(self, df):
-        self.df = df
-        # self.data_info = data_info
-    
-    def histplot(self, column, kde=False, ax=None):
-        if ax is None:
-            ax = plt.gca()  # Get current active axis if none is provided
-        sns.histplot(self.df[column], kde=kde, ax=ax)
-        ax.set_title(f'Histogram for {column}')
-
-    def skew_test(self, column_name):
-        return self.df[column_name].skew()
-
-    # def histogram_and_skew_sub_plots(self, variable_list, num_cols=3): #DataFrameInfo_instance
-
-    #     #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-    #     num_vars = len(variable_list)
-    #     #num_cols = 3  # Define number of columns for the subplot grid
-    #     num_cols = num_cols  # Define number of columns for the subplot grid
-    #     num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
-
-    #     # fig, axs = plt.subplots(num_rows, num_cols, figsize=(10, 10))  # Adjust the figsize as needed
-    #     fig, axs = plt.subplots(num_rows, num_cols, figsize=(16, num_rows * 5))
-    #     axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
-
-    #     for idx, column in enumerate(variable_list):
-    #         ax = axs[idx]
-    #         # Plot the histogram using the Plotter class's histplot method
-    #         self.histplot(column, kde=True, ax=ax)
-    #         # Calculate skewness using the DataInfo class
-    #         skew_value = self.skew_test(column_name=column)
-    #         ax.set_title(f'Skew: {skew_value:.2f}')
-
-    #         # Rotate x-axis labels to avoid overlap
-    #         ax.tick_params(axis='x', rotation=45) #
-
-    #     # If there are any unused subplots, hide them
-    #     for j in range(idx + 1, len(axs)):
-    #         fig.delaxes(axs[j]) # deletes any unused subplots
-    #     plt.tight_layout(pad=3.0) #
-    #     plt.show()
-
-    def histogram_and_skew_sub_plots(self, variable_list, num_cols=3):
-            num_vars = len(variable_list)
-            num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
-
-            fig, axs = plt.subplots(num_rows, num_cols, figsize=(18, num_rows * 5))  # Increased figure width
-            axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
-
-            for idx, column in enumerate(variable_list):
-                ax = axs[idx]
-                # Plot the histogram using the Plotter class's histplot method
-                self.histplot(column, kde=True, ax=ax)
-                # Calculate skewness
-                skew_value = self.skew_test(column_name=column)
-                ax.set_title(f'Histogram of {column}\nSkew: {skew_value:.2f}')
-
-                # Rotate x-axis labels to avoid overlap
-                ax.tick_params(axis='x', rotation=60)  # Rotate x-axis labels by 60 degrees
-
-                # Format x-axis tick labels to avoid scientific notation
-                ax.get_xaxis().get_major_formatter().set_scientific(False)
-
-            # Hide unused subplots if any
-            for j in range(idx + 1, len(axs)):
-                fig.delaxes(axs[j])  # deletes any unused subplots
-
-            # Adjust layout to prevent overlap
-            plt.tight_layout(pad=3.0)  # Adjust padding
-            plt.show()        
-    
-    def plot_qq(self, column, ax=None):
-        if ax is None:
-            ax = plt.gca()  # Get current active axis if none is provided
-        qq_plot= qqplot(self.df[column], scale=1, line ='q', ax=ax)
-        plt.title(f'Q-Q plot for {column}')
-        plt.show()
-    
-    def scatter(self, column_name):
-        scatter_plot = sns.scatterplot(self.df[column_name])
-        plt.show()
-        
-    def boxplot(self, column):
-        box_plot = sns.boxplot(self.df[column])
-        plt.show()
-    
-    def boxplots(self, variable_list):
-
-        # Number of variables
-        num_vars = len(variable_list)
-
-        # Create subplots (1 row, num_vars columns)
-        fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 4, 5))  # Adjust the width and height of the figure
-
-        # Plot each variable
-        for idx, i in enumerate(variable_list):
-            sns.boxplot(data=self.df, y=i, ax=axs[idx])  # y=i for vertical boxplots
-            axs[idx].set_title(f'{i}')
-            axs[idx].set_xlabel('')  # Remove x-axis label to save space
-            axs[idx].set_ylabel('')  # Remove y-axis label to save space
-
-        plt.tight_layout()
-        plt.show()
-
-    
-    def histograms_with_z_score_bounds(self, vars_list):
-
-        # Define Z-score thresholds
-        z_thresholds = [2, 3]
-
-        # Create a figure with subplots in a single row
-        num_vars = len(vars_list)
-        fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 6, 6))  # Adjust the figsize as needed
-
-        for idx, var in enumerate(vars_list):
-            # Calculate Z-scores for the variable
-            z_scores = (self.df[var] - self.df[var].mean()) / self.df[var].std()
-            
-            # Calculate the percentage of data loss due to each threshold
-            loss_z2 = (z_scores.abs() > 2).mean() * 100
-            loss_z3 = (z_scores.abs() > 3).mean() * 100
-            
-            ax = axs[idx]
-            
-            # Plot the histogram and KDE with a lighter shade of blue for non-outliers
-            sns.histplot(data=self.df, x=var, kde=True, color='cornflowerblue', label='Data', stat="density", ax=ax)
-            
-            # Plot the KDE to get the y-values for the fill_between function
-            kde = sns.kdeplot(data=self.df[var], color='blue', ax=ax)
-            
-            # Calculate the mean and standard deviation
-            mean = self.df[var].mean()
-            std = self.df[var].std()
-
-            # Draw dotted lines for Z-score thresholds and fill the areas for outliers
-            for z in z_thresholds:
-                # Calculate positions of Z-score thresholds
-                lower_bound = mean - z * std
-                upper_bound = mean + z * std
-                
-                # Plot vertical dotted lines
-                ax.axvline(lower_bound, color='black', linestyle='dotted', linewidth=1.5)
-                ax.axvline(upper_bound, color='black', linestyle='dotted', linewidth=1.5)
-                
-                # Get the KDE values for filling
-                kde_y = kde.get_lines()[0].get_ydata()
-                kde_x = kde.get_lines()[0].get_xdata()
-                
-                # Fill the areas representing outliers with a darker shade
-                ax.fill_between(kde_x, kde_y, where=((kde_x <= lower_bound) | (kde_x >= upper_bound)), 
-                                color='darkblue', alpha=0.7, label=f'Outliers (|Z| > {z})')
-                
-                # Further lower the Z-score labels for better readability
-                if var in ['Rotational speed [rpm]', 'Torque [Nm]']:
-                    y_position = max(kde_y) * 0.40  # Lower the position more for these variables
-                else:
-                    y_position = max(kde_y) * 0.85  # Keep higher position for others
-                
-                # Add bold, centered text labels for Z-scores as absolute values
-                ax.text(lower_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
-                        color='black', weight='bold', fontsize=10)
-                ax.text(upper_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
-                        color='black', weight='bold', fontsize=10)
-            
-            # Adding title and labels
-            ax.set_title(f'Histogram of {var}')
-            ax.set_xlabel(var)
-            ax.set_ylabel('Density')
-            
-            # Move the data loss statistics box down
-            ax.text(0.95, 0.65, f'Data Loss:\n|Z| > 2: {loss_z2:.2f}%\n|Z| > 3: {loss_z3:.2f}%', 
-                    transform=ax.transAxes, fontsize=10, verticalalignment='top', 
-                    horizontalalignment='right', weight='bold', bbox=dict(facecolor='white', alpha=0.8))
-            
-            # Add the legend
-            ax.legend(loc='upper right', fontsize='8', frameon=True, shadow=True, borderpad=1)
-
-        plt.tight_layout()
-        plt.show()
-    def correlation_heatmap(self, figsize=(12, 10), threshold=0, ax=None):
-        """
-        Generates a correlation heatmap, optionally filtered by a correlation threshold.
-        
-        Parameters:
-        - figsize: tuple, size of the figure.
-        - threshold: float, correlations lower than this value will not be shown.
-        - ax: matplotlib.axes, specify the axes for plotting when using subplots.
-        """
-        corr_matrix = self.df.corr()
-
-        # Apply threshold by setting values below the threshold to NaN (to not show them)
-        filtered_corr_matrix = corr_matrix.copy()
-        filtered_corr_matrix[abs(filtered_corr_matrix) < threshold] = None
-
-        # Create heatmap on the provided axes (or a new figure if ax is None)
-        if ax is None:
-            plt.figure(figsize=figsize)
-            sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm')
-            plt.title('Correlation Heatmap')
-            plt.show()
-        else:
-            sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
-            ax.set_title('Correlation Heatmap')
-
-# ##########################################################################################
-# # Step 1 
-# failure_data = pd.read_csv("failure_data.csv")
-
-# dt = DataTransform(failure_data)
-# failure_data = dt.drop_column(vars=['Unnamed: 0', 'Product ID'])
-
-# print(failure_data.head)
-
-# # Convert `Type` into dummies & join them onto our original df 
-# dt = DataTransform(failure_data)
-# type_as_dummies = dt.create_dummies_from_column('Type')
-# failure_data = dt.concat_dataframes(type_as_dummies)
-# failure_data.info()
-# ##########################################################################################
-# # step 2 - Imputing missing values 
-# # Impute NULL values of Air temperature 
-# print('Executing: Step 2 Imputing missing values')
-# dt = DataTransform(failure_data)
-# failure_data['Air temperature [K]'] = dt.impute_column(column_name='Air temperature [K]', method='median')
-
-# # Impute NULL values of `Process temperature [K]` using the median
-# dt = DataTransform(failure_data)
-# failure_data['Process temperature [K]'] = dt.impute_column(column_name='Process temperature [K]', method='mean')
-
-# # Impute NULL values of `Tool wear [min]` using the median 
-# dt = DataTransform(failure_data)
-# failure_data['Tool wear [min]'] = dt.impute_column(column_name='Tool wear [min]', method='median')
-
-# # Prove that the new transformed data contails no missing values 
-# info_df_without_null = DataFrameInfo(failure_data) # create a print statement here 
-# info_df_without_null.percentage_of_null()
-# print('Completed: Step 2 Imputing missing values')
-# ##########################################################################################
-# # Step 3 - treating for skewness in `rotational speed` # create a print statement here 
-# # Applying Yeo-Johnson Transformation to `Rotational Speed [rpm]`
-# print('Executing: Step 3 Treating for Skewness')
-# dt = DataTransform(failure_data)
-# failure_data['rotational_speed_normalised'] = dt.yeojohnson('Rotational speed [rpm]')
-# print('Completed: Step 3 Treating for Skewness')
-# ##########################################################################################
-# #Step 4: removing outliers 
-# print('Executing: Step 4 Removing Outliers')
-# dt = DataTransform(failure_data)
-# failure_data, min_combination, combination_percentage_dict = dt.remove_outliers_optimised(columns=['Rotational speed [rpm]','Torque [Nm]','Process temperature [K]'], 
-#                                                                                                   key_ID='UDI', 
-#                                                                                                   method='IQR',
-#                                                                                                   suppress_output=True)
-# print('Completed: Step 4 Removing Outliers')
-# ##########################################################################################
-# # Step 5: Dropping columns based on Collinearity
-# # possibly drop `RNF` based on chi-squared tests
-
-# ##########################################################################################
-# # proving the changes 
-
-# print('\n')
-# print('\n')
-# print('\nChecks:')
-
-# info = DataFrameInfo(failure_data)
-# print(f'Percentage of null values: {info.percentage_of_null()}')
-# print(f'Shape of DataFrame: {info.return_shape()}')
-# print(f'Column names: {info.column_names()}')
-
-# # visual check of the skewness transformation 
-
-# # plott = Plotter(failure_data)
-# # plott.histogram_and_skew_sub_plots(variable_list=['rotational_speed_normalised']) # improve function, it should not take an instance as an arguement 
-
-# # Visual check that outliers have been removed 
-# # plott = Plotter(failure_data)
-
-# # List of continuous variables of interest
-# # continous_variables = ['Air temperature [K]', 'Process temperature [K]', 'rotational_speed_normalised', 'Torque [Nm]', 'Tool wear [min]']
-# # plott.boxplots(variable_list=continous_variables)
-
-# plott = Plotter(failure_data)
-# plott.histplot(column='rotational_speed_normalised')
-
-import pandas as pd
-
 def load_and_clean_data(file_path, drop_columns, convert_column_into_dummy_var): # consider renaming columns here 
     '''
     Performs initial cleaning when loading data. 
@@ -634,40 +346,257 @@ def run_diagnostics(df): # not sure if this is needed yet
     print(f'\nShape of DataFrame: {info.return_shape()}')
     print(f'\nColumn names: {info.column_names()}')
     
-# def plot_histogram(failure_data, column):
-#     plott = Plotter(failure_data)
-#     plott.histplot(column=column)
 
 
-# Step 1 - Main workflow
-failure_data = load_and_clean_data(file_path="failure_data.csv", drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') # too vague 
-print('##############################################################################')
-# Step 2 - Impute missing values
-imputation_dict = {
-    'Air temperature [K]': 'median',
-    'Process temperature [K]': 'mean',
-    'Tool wear [min]': 'median'
-}
-failure_data = impute_missing_values(failure_data, imputation_dict)
-info = DataFrameInfo(failure_data)
-print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{info.percentage_of_null()}")
-print('##############################################################################')
-# Step 3 - Treat skewness in 'Rotational Speed [rpm]'
-info = DataFrameInfo(failure_data)
-print(f"Skew Test before treatement: {info.skew_test('Rotational speed [rpm]')}")
-failure_data = treat_skewness(failure_data, skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
-info = DataFrameInfo(failure_data)
-print(f"\nSkew Test after treatement: {info.skew_test('rotational_speed_normalised')}")
-print('##############################################################################')
-# Step 4 - Remove outliers
-print('Before Removing outliers:')
-print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
-# print('\n')
-outlier_columns = ['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']
-failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI', method='IQR')
-print('After Removing Outliers:')
-print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
-print('##############################################################################')
-# print(failure_data.columns)
+if __name__ == '__main__':
+    # Step 1 - Main workflow
+    failure_data = load_and_clean_data(file_path="failure_data.csv", drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
+    print('##############################################################################')
+    # Step 2 - Impute missing values
+    imputation_dict = {
+        'Air temperature [K]': 'median',
+        'Process temperature [K]': 'mean',
+        'Tool wear [min]': 'median'
+    }
+    failure_data = impute_missing_values(failure_data, imputation_dict)
+    info = DataFrameInfo(failure_data)
+    print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{info.percentage_of_null()}")
+    print('##############################################################################')
+    # Step 3 - Treat skewness in 'Rotational Speed [rpm]'
+    info = DataFrameInfo(failure_data)
+    print(f"Skew Test before treatement: {info.skew_test('Rotational speed [rpm]')}")
+    failure_data = treat_skewness(failure_data, skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
+    info = DataFrameInfo(failure_data)
+    print(f"\nSkew Test after treatement: {info.skew_test('rotational_speed_normalised')}")
+    print('##############################################################################')
+    # Step 4 - Remove outliers
+    print('Before Removing outliers:')
+    print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
+    # print('\n')
+    outlier_columns = ['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']
+    failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI', method='IQR')
+    print('After Removing Outliers:')
+    print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
+    print('##############################################################################')
+    print('DataFrame Diagnostics Post Preproccessing:\n')
+    print(run_diagnostics(failure_data))
 
-print(run_diagnostics(failure_data))
+
+
+
+
+
+
+
+# # Plotter Class
+# class Plotter:
+#     def __init__(self, df):
+#         self.df = df
+#         # self.data_info = data_info
+    
+#     def histplot(self, column, kde=False, ax=None):
+#         if ax is None:
+#             ax = plt.gca()  # Get current active axis if none is provided
+#         sns.histplot(self.df[column], kde=kde, ax=ax)
+#         ax.set_title(f'Histogram for {column}')
+
+#     def skew_test(self, column_name):
+#         return self.df[column_name].skew()
+
+#     # def histogram_and_skew_sub_plots(self, variable_list, num_cols=3): #DataFrameInfo_instance
+
+#     #     #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+#     #     num_vars = len(variable_list)
+#     #     #num_cols = 3  # Define number of columns for the subplot grid
+#     #     num_cols = num_cols  # Define number of columns for the subplot grid
+#     #     num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
+
+#     #     # fig, axs = plt.subplots(num_rows, num_cols, figsize=(10, 10))  # Adjust the figsize as needed
+#     #     fig, axs = plt.subplots(num_rows, num_cols, figsize=(16, num_rows * 5))
+#     #     axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
+
+#     #     for idx, column in enumerate(variable_list):
+#     #         ax = axs[idx]
+#     #         # Plot the histogram using the Plotter class's histplot method
+#     #         self.histplot(column, kde=True, ax=ax)
+#     #         # Calculate skewness using the DataInfo class
+#     #         skew_value = self.skew_test(column_name=column)
+#     #         ax.set_title(f'Skew: {skew_value:.2f}')
+
+#     #         # Rotate x-axis labels to avoid overlap
+#     #         ax.tick_params(axis='x', rotation=45) #
+
+#     #     # If there are any unused subplots, hide them
+#     #     for j in range(idx + 1, len(axs)):
+#     #         fig.delaxes(axs[j]) # deletes any unused subplots
+#     #     plt.tight_layout(pad=3.0) #
+#     #     plt.show()
+
+#     def histogram_and_skew_sub_plots(self, variable_list, num_cols=3):
+#             num_vars = len(variable_list)
+#             num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
+
+#             fig, axs = plt.subplots(num_rows, num_cols, figsize=(18, num_rows * 5))  # Increased figure width
+#             axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
+
+#             for idx, column in enumerate(variable_list):
+#                 ax = axs[idx]
+#                 # Plot the histogram using the Plotter class's histplot method
+#                 self.histplot(column, kde=True, ax=ax)
+#                 # Calculate skewness
+#                 skew_value = self.skew_test(column_name=column)
+#                 ax.set_title(f'Histogram of {column}\nSkew: {skew_value:.2f}')
+
+#                 # Rotate x-axis labels to avoid overlap
+#                 ax.tick_params(axis='x', rotation=60)  # Rotate x-axis labels by 60 degrees
+
+#                 # Format x-axis tick labels to avoid scientific notation
+#                 ax.get_xaxis().get_major_formatter().set_scientific(False)
+
+#             # Hide unused subplots if any
+#             for j in range(idx + 1, len(axs)):
+#                 fig.delaxes(axs[j])  # deletes any unused subplots
+
+#             # Adjust layout to prevent overlap
+#             plt.tight_layout(pad=3.0)  # Adjust padding
+#             plt.show()        
+    
+#     def plot_qq(self, column, ax=None):
+#         if ax is None:
+#             ax = plt.gca()  # Get current active axis if none is provided
+#         qq_plot= qqplot(self.df[column], scale=1, line ='q', ax=ax)
+#         plt.title(f'Q-Q plot for {column}')
+#         plt.show()
+    
+#     def scatter(self, column_name):
+#         scatter_plot = sns.scatterplot(self.df[column_name])
+#         plt.show()
+        
+#     def boxplot(self, column):
+#         box_plot = sns.boxplot(self.df[column])
+#         plt.show()
+    
+#     def boxplots(self, variable_list):
+
+#         # Number of variables
+#         num_vars = len(variable_list)
+
+#         # Create subplots (1 row, num_vars columns)
+#         fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 4, 5))  # Adjust the width and height of the figure
+
+#         # Plot each variable
+#         for idx, i in enumerate(variable_list):
+#             sns.boxplot(data=self.df, y=i, ax=axs[idx])  # y=i for vertical boxplots
+#             axs[idx].set_title(f'{i}')
+#             axs[idx].set_xlabel('')  # Remove x-axis label to save space
+#             axs[idx].set_ylabel('')  # Remove y-axis label to save space
+
+#         plt.tight_layout()
+#         plt.show()
+
+    
+#     def histograms_with_z_score_bounds(self, vars_list):
+
+#         # Define Z-score thresholds
+#         z_thresholds = [2, 3]
+
+#         # Create a figure with subplots in a single row
+#         num_vars = len(vars_list)
+#         fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 6, 6))  # Adjust the figsize as needed
+
+#         for idx, var in enumerate(vars_list):
+#             # Calculate Z-scores for the variable
+#             z_scores = (self.df[var] - self.df[var].mean()) / self.df[var].std()
+            
+#             # Calculate the percentage of data loss due to each threshold
+#             loss_z2 = (z_scores.abs() > 2).mean() * 100
+#             loss_z3 = (z_scores.abs() > 3).mean() * 100
+            
+#             ax = axs[idx]
+            
+#             # Plot the histogram and KDE with a lighter shade of blue for non-outliers
+#             sns.histplot(data=self.df, x=var, kde=True, color='cornflowerblue', label='Data', stat="density", ax=ax)
+            
+#             # Plot the KDE to get the y-values for the fill_between function
+#             kde = sns.kdeplot(data=self.df[var], color='blue', ax=ax)
+            
+#             # Calculate the mean and standard deviation
+#             mean = self.df[var].mean()
+#             std = self.df[var].std()
+
+#             # Draw dotted lines for Z-score thresholds and fill the areas for outliers
+#             for z in z_thresholds:
+#                 # Calculate positions of Z-score thresholds
+#                 lower_bound = mean - z * std
+#                 upper_bound = mean + z * std
+                
+#                 # Plot vertical dotted lines
+#                 ax.axvline(lower_bound, color='black', linestyle='dotted', linewidth=1.5)
+#                 ax.axvline(upper_bound, color='black', linestyle='dotted', linewidth=1.5)
+                
+#                 # Get the KDE values for filling
+#                 kde_y = kde.get_lines()[0].get_ydata()
+#                 kde_x = kde.get_lines()[0].get_xdata()
+                
+#                 # Fill the areas representing outliers with a darker shade
+#                 ax.fill_between(kde_x, kde_y, where=((kde_x <= lower_bound) | (kde_x >= upper_bound)), 
+#                                 color='darkblue', alpha=0.7, label=f'Outliers (|Z| > {z})')
+                
+#                 # Further lower the Z-score labels for better readability
+#                 if var in ['Rotational speed [rpm]', 'Torque [Nm]']:
+#                     y_position = max(kde_y) * 0.40  # Lower the position more for these variables
+#                 else:
+#                     y_position = max(kde_y) * 0.85  # Keep higher position for others
+                
+#                 # Add bold, centered text labels for Z-scores as absolute values
+#                 ax.text(lower_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
+#                         color='black', weight='bold', fontsize=10)
+#                 ax.text(upper_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
+#                         color='black', weight='bold', fontsize=10)
+            
+#             # Adding title and labels
+#             ax.set_title(f'Histogram of {var}')
+#             ax.set_xlabel(var)
+#             ax.set_ylabel('Density')
+            
+#             # Move the data loss statistics box down
+#             ax.text(0.95, 0.65, f'Data Loss:\n|Z| > 2: {loss_z2:.2f}%\n|Z| > 3: {loss_z3:.2f}%', 
+#                     transform=ax.transAxes, fontsize=10, verticalalignment='top', 
+#                     horizontalalignment='right', weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+            
+#             # Add the legend
+#             ax.legend(loc='upper right', fontsize='8', frameon=True, shadow=True, borderpad=1)
+
+#         plt.tight_layout()
+#         plt.show()
+#     def correlation_heatmap(self, figsize=(12, 10), threshold=0, ax=None):
+#         """
+#         Generates a correlation heatmap, optionally filtered by a correlation threshold.
+        
+#         Parameters:
+#         - figsize: tuple, size of the figure.
+#         - threshold: float, correlations lower than this value will not be shown.
+#         - ax: matplotlib.axes, specify the axes for plotting when using subplots.
+#         """
+#         corr_matrix = self.df.corr()
+
+#         # Apply threshold by setting values below the threshold to NaN (to not show them)
+#         filtered_corr_matrix = corr_matrix.copy()
+#         filtered_corr_matrix[abs(filtered_corr_matrix) < threshold] = None
+
+#         # Create heatmap on the provided axes (or a new figure if ax is None)
+#         if ax is None:
+#             plt.figure(figsize=figsize)
+#             sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm')
+#             plt.title('Correlation Heatmap')
+#             plt.show()
+#         else:
+#             sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
+#             ax.set_title('Correlation Heatmap')
+
+
+
+
+
+
+# make it as part of the same class 
