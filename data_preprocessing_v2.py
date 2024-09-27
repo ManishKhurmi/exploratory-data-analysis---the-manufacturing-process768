@@ -32,8 +32,9 @@ class DataFrameInfo:
     def data_type(self):
         print(self.df.dtypes)
     
-    def describe_statistics(self):
-        return self.df.describe().loc[['mean', 'std', '50%']]
+    def describe_statistics(self, columns):
+        # return self.df.describe().loc[['mean', 'std', '50%']]
+        return self.df[columns].describe()
     
     def unique_value_count(self, column_names):
         return self.df[column_names].nunique()
@@ -356,6 +357,12 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
         self.df[rename_new_column] = self.yeojohnson(skew_column)
         print("Completed: Step 3 - Skewness Treated")
         return self.df
+    
+    def run_diagnostics(self): # not sure if this is needed yet 
+        print('Running Diagnostics')
+        print(f'Percentage of null values: {self.percentage_of_null()}')
+        print(f'\nShape of DataFrame: {self.return_shape()}')
+        print(f'\nColumn names: {self.column_names()}')
 
 # # def remove_outliers(df, outlier_columns, key_id, method = ['IQR', 'z_score'], z_threshold= None, suppress_output=True): # redundant
 # #     print("\nExecuting: Step 4 - Removing Outliers")
@@ -368,20 +375,14 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
 # #     print("Completed: Step 4 - Outliers Removed")
 # #     return df
 
-#     def run_diagnostics(df): # not sure if this is needed yet 
-#         print('Running Diagnostics')
-#         info = DataFrameInfo(df)
-#         print(f'Percentage of null values: {info.percentage_of_null()}')
-#         print(f'\nShape of DataFrame: {info.return_shape()}')
-#         print(f'\nColumn names: {info.column_names()}')
+
 
 # Step 1 - Inital load and cleaning
-# failure_data = pd.read_csv('failure_data.csv')
-# preprocessing = DataPreprocessing(failure_data)    
 preprocessing = DataPreprocessing(file_name='failure_data.csv')    
 failure_data = preprocessing.initial_load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
-print('##############################################################################')
+print(f"\nCheck Step 1\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
 
+print('##############################################################################')
 # Step 2 - Impute missing values 
 imputation_dict = {
     'Air temperature [K]': 'median',
@@ -390,28 +391,27 @@ imputation_dict = {
 }
 failure_data = preprocessing.impute_missing_values(imputation_dict)
 print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
-print('##############################################################################')
+print(failure_data.columns)
 
+print('##############################################################################')
 # Step 3 - Treat skewness in 'Rotational Speed [rpm]'
 print(f"Skew Test before treatement: {preprocessing.skew_test('Rotational speed [rpm]')}")
 failure_data = preprocessing.treat_skewness(skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
 print(f"\nSkew Test after treatement: {preprocessing.skew_test('rotational_speed_normalised')}")
+
 print('##############################################################################')
-
 # Step 4 - Remove outliers
-# create a variable that stores the desciption of variables that we are treating for outliers.
-column_stats_before_removing_outliers = failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe()
-print('\n')
 outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']
-failure_data = preprocessing.remove_outliers_optimised(outlier_columns,key_ID='UDI', method='IQR', suppress_output=True)
-print('Before Removing outliers:\n')
-
+column_stats_before_removing_outliers = preprocessing.describe_statistics(columns=outlier_columns) # print later for comparison
+print('\n')
+failure_data, _, _, = preprocessing.remove_outliers_optimised(outlier_columns,key_ID='UDI', method='IQR', suppress_output=True)
+print('\nBefore Removing outliers:')
 print(column_stats_before_removing_outliers)
-print('After Removing Outliers:')
-# print(failure_data[['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']].describe())
-failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe()
-
-
+print('\nAfter Removing Outliers:')
+print(failure_data[outlier_columns].describe())
+print('##############################################################################')
+failure_data = preprocessing.run_diagnostics() # BUG - this does not work, maybe an issue with the class contruction
+print(failure_data)
 
 # if __name__ == '__main__':
 #     # Step 1 - Main workflow
