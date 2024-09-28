@@ -402,7 +402,7 @@ print(column_stats_before_removing_outliers)
 print('\nAfter Removing Outliers:')
 print(failure_data[outlier_columns].describe())
 print('##############################################################################')
-failure_data = preprocessing.run_diagnostics() # BUG - this does not work, maybe an issue with the class contruction
+failure_data = preprocessing.run_diagnostics() # BUG - this does not work, maybe an issue with the class contruction.
 print('Expected length of final df should be 9866')
 # print(failure_data)
 
