@@ -15,6 +15,42 @@ import DataFrameInfo_class as info
 from itertools import permutations
 import contextlib
 import io
+import os
+
+class LoadData:
+    def __init__(self, file_name):
+        """
+        Initialize with the file name and load the data as a pandas DataFrame.
+        """
+        self.file_name = file_name
+        self.df = self.load_dataframe()
+
+    def find_file_path(self):
+        """
+        Locate the file in the current directory or subdirectory.
+        Raise an error if the file is not found.
+        """
+        current_dir = os.getcwd()  # Get current working directory where the script is running
+        file_path = os.path.join(current_dir, self.file_name)  # Form full path
+
+        if os.path.exists(file_path):  # Check if file exists
+            print(f"File found: {file_path}")
+            return file_path
+        else:
+            raise FileNotFoundError(f"File '{self.file_name}' not found in directory '{current_dir}'.")
+
+    def load_dataframe(self):
+        """
+        Load the file as a pandas DataFrame.
+        """
+        file_path = self.find_file_path()  # Find the file path
+        try:
+            df = pd.read_csv(file_path)  # Load the CSV into a DataFrame
+            print(f"DataFrame loaded successfully from {file_path}.")
+            return df
+        except Exception as e:
+            raise Exception(f"Error loading DataFrame from '{file_path}': {e}")
+
 
 class DataFrameInfo:
     def __init__(self, df):
@@ -113,35 +149,66 @@ class DataTransform:
         joined_df = pd.concat([self.df, new_df], axis = 1)
         return joined_df
     
-    def impute_column(self, column_name, method='mean'):
-        # Count the number of NULL values before filling
-        null_count_before = self.df[column_name].isna().sum()
+    def impute_missing_values(self, imputation_dict):
+        print("\nExecuting: Imputing Missing Values")
+        
+        for column, method in imputation_dict.items():
+            # Count the number of NULL values before imputation
+            null_count_before = self.df[column].isna().sum()
+            print(f'Number of NULL values in {column} before imputation: {null_count_before}')
 
-        print(f'Number of NULL values in {column_name} before imputation: {null_count_before}')
-        # Choose the imputation method
-        if method == 'mean':
-            impute_value = self.df[column_name].mean()
-        elif method == 'median':
-            impute_value = self.df[column_name].median()
-        elif method == 'mode':
-            impute_value = self.df[column_name].mode()[0]  # Mode might return multiple values, take the first one
+            # Choose the imputation method
+            if method == 'mean':
+                impute_value = self.df[column].mean()
+            elif method == 'median':
+                impute_value = self.df[column].median()
+            elif method == 'mode':
+                impute_value = self.df[column].mode()[0]
+            else:
+                raise ValueError(f"Invalid method for {column}. Must be 'mean', 'median', or 'mode'.")
+
+            # Instead of inplace=True, reassign the column explicitly
+            self.df[column] = self.df[column].fillna(impute_value)
+
+            # Count the number of NULL values after imputation
+            null_count_after = self.df[column].isna().sum()
+            print(f'Number of NULL values in {column} after imputation: {null_count_after}')
+        
+        print("Completed: Imputation of Missing Values")
+        return self.df
+
+    def treat_skewness(self, column_name, normalied_column_name, method='log_transform'):
+        """
+        Applies the specified skewness treatment method to a column.
+        Returns the orignal df with the addion of the normalised column.
+
+        Available methods:
+        - 'log_transform': Log transformation (for positive values only).
+        - 'boxcox': Box-Cox transformation (for positive values only).
+        - 'yeojohnson': Yeo-Johnson transformation (for both positive and negative values).
+        """
+        # Check the method and apply the corresponding transformation
+        if method == 'log_transform':
+            print(f"Applying log transform to {column_name}")
+            # Applying log transformation, making sure only positive values are transformed
+            self.df[normalied_column_name] = self.df[column_name].apply(lambda x: np.log(x) if x > 0 else 0)
+
+        elif method == 'boxcox':
+            print(f"Applying Box-Cox transform to {column_name}")
+            # Box-Cox requires positive values, add a small constant to avoid zero or negative values
+            self.df[normalied_column_name], _ = stats.boxcox(self.df[column_name])
+
+        elif method == 'yeojohnson':
+            print(f"Applying Yeo-Johnson transform to {column_name}")
+            # Yeo-Johnson can handle both positive and negative values
+            self.df[normalied_column_name], _ = stats.yeojohnson(self.df[column_name])
+
         else:
-            raise ValueError("Method must be 'mean', 'median', or 'mode'")
-        
-        # Impute the missing values
-        self.df[column_name] = self.df[column_name].fillna(impute_value)
-        
-        # Count the number of NULL values after filling (should be 0)
-        null_count_after = self.df[column_name].isna().sum()
-        print(f'Number of NULL values in {column_name} after imputation: {null_count_after}')
-        
-        return self.df[column_name]
+            raise ValueError(f"Unknown method '{method}'. Choose from 'log_transform', 'boxcox', or 'yeojohnson'.")
 
-    def yeojohnson(self, column_name):
-        yeojohnson_var = self.df[column_name]
-        yeojohnson_var, _ = stats.yeojohnson(yeojohnson_var) # The '_' ignores the second parameter, in this case it is the lambda parameter 
-        yeojohnson_var = pd.Series(yeojohnson_var)
-        return yeojohnson_var
+        print(f"{method} applied to {column_name}.")
+        # normalised_var = self.df[normalied_column_name]
+        return self.df
     
     def z_score(self, column): # takes in a column and creates z scores, 
         x = self.df[column] 
@@ -199,8 +266,8 @@ class DataTransform:
         '''Returns the filtered df'''
         # df_numeric_vars = failure_data_treating_outliers.drop(['UDI', 'Type'], axis = 1)
         filtered_df = self.df.drop(vars, axis = 1)
-        print(f'df columns before filtering: \n {self.df.columns}\n')
-        print(f'filtered_df\n: {filtered_df.columns}')
+        print(f'Column List: \n {self.df.columns}\n')
+        print(f'Column List After dropping df\n: {filtered_df.columns}')
         return filtered_df
     
     def merge(self, df_to_merge, on='UDI', how='left'):
@@ -248,7 +315,7 @@ class DataTransform:
         # Generate all permutations of the given length
         return list(permutations(input_list, len(input_list)))
     
-    def remove_outliers_optimised(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3], suppress_output=False):
+    def remove_outliers_with_optimiser(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3], suppress_output=False):
         permutations_result = self.generate_permutations(columns)
 
         combination_percentage_dict = {}
@@ -295,152 +362,60 @@ class DataTransform:
 
         # Return the best filtered dataframe
         return best_filtered_df, min_combination, combination_percentage_dict
-import os
 
-class DataPreprocessing(DataFrameInfo, DataTransform):
-    def __init__(self, file_name):
-        self.file_name = file_name
-        self.file_path = self.find_file_path(file_name)
-        self.df = self.load_dataframe(self.file_path)
+       
+if __name__=='__main__':
 
-        # Inherit Methods from Parent Classes
-        DataTransform.__init__(self, self.df)
-        DataFrameInfo.__init__(self, self.df)
+    print('##############################################################################')
+    print('Step 0: Load the Data')
+    load_data = LoadData('failure_data.csv')  # Instantiate the class with your file name
+    failure_data_df = load_data.df  # Access the loaded DataFrame
+    print('##############################################################################')
+    print('Step 1: Initial Data Cleaning')
+    dt = DataTransform(failure_data_df)
+    failure_data_df = dt.drop_column(['Unnamed: 0', 'Product ID'])
 
-    def find_file_path(self, file_name):
-        # Assuming the file is in the same directory as the script or notebook
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(current_dir, file_name)
-        if os.path.exists(file_path):
-            print(f"File found: {file_path}")
-            return file_path
-        else:
-            raise FileNotFoundError(f"File '{file_name}' not found in directory '{current_dir}'.")
-    
-    def load_dataframe(self, file_path):
-        # Load the DataFrame from the specified file (assuming it's a CSV for this example)
-        try:
-            df = pd.read_csv(file_path)
-            print("DataFrame loaded successfully.")
-            return df
-        except Exception as e:
-            raise Exception(f"Error loading DataFrame from '{file_path}': {e}")
-    
-    def initial_load_and_clean_data(self, drop_columns, convert_column_into_dummy_var): # consider renaming columns here 
-        '''
-        Performs initial cleaning when loading data. 
-        Reads csv, drop columns, add dummy variables.
-        '''
-        print("Executing: Step 1 - Loading and Cleaning Data")
-        # self.df = pd.read_csv(file_path)
-        print('\nDropping Column')
-        self.df = self.drop_column(vars=drop_columns)
-        print('\nCreating Dummy Variables')
-        # Convert `Type` into dummies & join them to the original dataframe
-        dummy_vars = self.create_dummies_from_column(convert_column_into_dummy_var)
-        self.df = self.concat_dataframes(dummy_vars)
-        print(f'\nColumns of New DataFrame: \n{self.df.columns}')
-        print(f'\nFirst row: \n{self.df.head(1)}')
-        print("\nCompleted: Step 1 - Data Loaded and Cleaned")
-        return self.df
+    dt = DataTransform(failure_data_df)
+    type_dummy_df = dt.create_dummies_from_column('Type')
+    failure_data_df = dt.concat_dataframes(type_dummy_df)
 
-    def impute_missing_values(self, imputation_dict):
-        print("\nExecuting: Step 2 - Imputing Missing Values")        
-        for column, method in imputation_dict.items():
-            self.df[column] = self.impute_column(column_name=column, method=method)
-        
-        print("Completed: Step 2 - Missing Values Imputed")
-        return self.df
+    info = DataFrameInfo(failure_data_df)
+    print(f"\nColumns After concatination: \n{info.column_names()}")
+    print('##############################################################################')
+    print('Step 2: Impute missing values')
+    imputation_dict = {
+        'Air temperature [K]': 'median',
+        'Process temperature [K]': 'mean',
+        'Tool wear [min]': 'median'
+    }
+    dt = DataTransform(failure_data_df)
+    failure_data_df = dt.impute_missing_values(imputation_dict)
+    info = DataFrameInfo(failure_data_df)
+    print(f"\nCheck\nPercentage of Null Values for each column after imputation: \n{info.percentage_of_null()}")
+    print('##############################################################################')
+    print('Step 3: Treating Skewness')
+    dt = DataTransform(failure_data_df)
+    info = DataFrameInfo(failure_data_df)
+    print(f"\nSkew Test Before treatement: {info.skew_test('Rotational speed [rpm]')}")
+    failure_data_df = dt.treat_skewness(column_name='Rotational speed [rpm]', normalied_column_name='rotational_speed_normalised', method='yeojohnson') # 
+    info = DataFrameInfo(failure_data_df)
+    print(f"\nSkew Test After treatement: {info.skew_test('rotational_speed_normalised')}")
+    print('##############################################################################')
+    print('Step 4: Removing Outliers')
+    dt = DataTransform(failure_data_df)
 
-    def treat_skewness(self, skew_column, rename_new_column): # redundant 
-        print("\nExecuting: Step 3 - Treating for Skewness")
-        self.df[rename_new_column] = self.yeojohnson(skew_column)
-        print("Completed: Step 3 - Skewness Treated")
-        return self.df
-    
-    def run_diagnostics(self): # not sure if this is needed yet 
-        print('Running Diagnostics')
-        print(f'Percentage of null values: {self.percentage_of_null()}')
-        print(f'\nShape of DataFrame: {self.return_shape()}')
-        print(f'\nColumn names: {self.column_names()}')
-        # print(f'\nColumn names: {self.df.columns}')
-        # print(f'\nLength of new df: {len(self.df)}')
+    info = DataFrameInfo(failure_data_df)
+    outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']
+    print(f"\nBefore Removing outliers: {info.describe_statistics(outlier_columns)}")
 
+    failure_data_df, _, _ = dt.remove_outliers_with_optimiser(outlier_columns, key_ID='UDI', method='IQR', suppress_output=True)
 
-#Step 1 - Inital load and cleaning
-preprocessing = DataPreprocessing(file_name='failure_data.csv')    
-failure_data = preprocessing.initial_load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
-print(f"\nCheck Step 1\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
-# vars = ['Air temperature [K]', 'Process temperature [K]','Tool wear [min]' ]
-# step_1 = print(failure_data[vars].describe())
+    info = DataFrameInfo(failure_data_df)
+    print(f"\nAfter Removing outliers: {info.describe_statistics(outlier_columns)}")
+    print('##############################################################################')
+    print('Step 5: Run Diagnostics')
+    info = DataFrameInfo(failure_data_df)
 
-print('##############################################################################')
-# Step 2 - Impute missing values 
-imputation_dict = {
-    'Air temperature [K]': 'median',
-    'Process temperature [K]': 'mean',
-    'Tool wear [min]': 'median'
-}
-failure_data = preprocessing.impute_missing_values(imputation_dict)
-# print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
-# print(step_1)
-# print(failure_data[vars].describe())
-# print(failure_data.columns)
-print('##############################################################################')
-# Step 3 - Treat skewness in 'Rotational Speed [rpm]'
-print(f"Skew Test before treatement: {preprocessing.skew_test('Rotational speed [rpm]')}")
-failure_data = preprocessing.treat_skewness(skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
-print(f"\nSkew Test after treatement: {preprocessing.skew_test('rotational_speed_normalised')}")
-print('##############################################################################')
-# Step 4 - Remove outliers
-outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]'] # wrong outliers 
-column_stats_before_removing_outliers = preprocessing.describe_statistics(columns=outlier_columns) # print later for comparison
-print('\n')
-failure_data, _, _, = preprocessing.remove_outliers_optimised(outlier_columns,key_ID='UDI', method='IQR', suppress_output=True)
-print('\nBefore Removing outliers:')
-print(column_stats_before_removing_outliers)
-print('\nAfter Removing Outliers:')
-print(failure_data[outlier_columns].describe())
-
-print('##############################################################################')
-failure_data = preprocessing.run_diagnostics() # BUG - this does not work, maybe an issue with the class contruction.
-print('Expected length of final df should be 9866')
-# print(failure_data)
-
-
-
-
-# if __name__ == '__main__':
-#     # Step 1 - Main workflow
-#     failure_data = load_and_clean_data(file_path="failure_data.csv", drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
-#     print('##############################################################################')
-#     # Step 2 - Impute missing values
-#     imputation_dict = {
-#         'Air temperature [K]': 'median',
-#         'Process temperature [K]': 'mean',
-#         'Tool wear [min]': 'median'
-#     }
-#     failure_data = impute_missing_values(failure_data, imputation_dict)
-#     info = DataFrameInfo(failure_data)
-#     print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{info.percentage_of_null()}")
-#     print('##############################################################################')
-#     # Step 3 - Treat skewness in 'Rotational Speed [rpm]'
-#     info = DataFrameInfo(failure_data)
-#     print(f"Skew Test before treatement: {info.skew_test('Rotational speed [rpm]')}")
-#     failure_data = treat_skewness(failure_data, skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
-#     info = DataFrameInfo(failure_data)
-#     print(f"\nSkew Test after treatement: {info.skew_test('rotational_speed_normalised')}")
-#     print('##############################################################################')
-#     # Step 4 - Remove outliers
-#     print('Before Removing outliers:')
-#     print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
-#     # print('\n')
-#     outlier_columns = ['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']
-#     failure_data = remove_outliers(failure_data, outlier_columns, key_id='UDI', method='IQR')
-#     print('After Removing Outliers:')
-#     print(failure_data[['Rotational speed [rpm]', 'Torque [Nm]', 'Process temperature [K]']].describe())
-#     print('##############################################################################')
-#     print('DataFrame Diagnostics Post Preproccessing:\n')
-#     print(run_diagnostics(failure_data))
-
-
+    print(f"Shape of the DataFrame: {info.return_shape()}")
+    print(f"Percentage of missing values in each column:\n{info.percentage_of_null()}")
+    print(f"List of column names in the DataFrame: {info.column_names()}")
