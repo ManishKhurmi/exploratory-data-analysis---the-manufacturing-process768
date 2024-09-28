@@ -367,8 +367,6 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
         # print(f'\nLength of new df: {len(self.df)}')
 
 
-
-
 #Step 1 - Inital load and cleaning
 preprocessing = DataPreprocessing(file_name='failure_data.csv')    
 failure_data = preprocessing.initial_load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
@@ -385,7 +383,6 @@ imputation_dict = {
 }
 failure_data = preprocessing.impute_missing_values(imputation_dict)
 # print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
-
 # print(step_1)
 # print(failure_data[vars].describe())
 # print(failure_data.columns)
