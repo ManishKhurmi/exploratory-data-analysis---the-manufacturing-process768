@@ -408,8 +408,6 @@ print('Expected length of final df should be 9866')
 
 
 
-
-
 # if __name__ == '__main__':
 #     # Step 1 - Main workflow
 #     failure_data = load_and_clean_data(file_path="failure_data.csv", drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
