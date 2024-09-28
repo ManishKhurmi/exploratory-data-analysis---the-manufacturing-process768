@@ -363,24 +363,18 @@ class DataPreprocessing(DataFrameInfo, DataTransform):
         print(f'Percentage of null values: {self.percentage_of_null()}')
         print(f'\nShape of DataFrame: {self.return_shape()}')
         print(f'\nColumn names: {self.column_names()}')
-
-# # def remove_outliers(df, outlier_columns, key_id, method = ['IQR', 'z_score'], z_threshold= None, suppress_output=True): # redundant
-# #     print("\nExecuting: Step 4 - Removing Outliers")
-# #     dt = DataTransform(df)
-# #     df, _, _ = dt.remove_outliers_optimised(columns=outlier_columns, 
-# #                                                     key_ID=key_id, 
-# #                                                     method=method, # should not be hard coded
-# #                                                     z_threshold=z_threshold,
-# #                                                     suppress_output=suppress_output) # should not be hard coded
-# #     print("Completed: Step 4 - Outliers Removed")
-# #     return df
+        # print(f'\nColumn names: {self.df.columns}')
+        # print(f'\nLength of new df: {len(self.df)}')
 
 
 
-# Step 1 - Inital load and cleaning
+
+#Step 1 - Inital load and cleaning
 preprocessing = DataPreprocessing(file_name='failure_data.csv')    
 failure_data = preprocessing.initial_load_and_clean_data(drop_columns=['Unnamed: 0', 'Product ID'], convert_column_into_dummy_var='Type') 
 print(f"\nCheck Step 1\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
+# vars = ['Air temperature [K]', 'Process temperature [K]','Tool wear [min]' ]
+# step_1 = print(failure_data[vars].describe())
 
 print('##############################################################################')
 # Step 2 - Impute missing values 
@@ -390,18 +384,19 @@ imputation_dict = {
     'Tool wear [min]': 'median'
 }
 failure_data = preprocessing.impute_missing_values(imputation_dict)
-print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
-print(failure_data.columns)
+# print(f"\nCheck Step 2\nPercentage of Null Values for each column after imputation: \n{preprocessing.percentage_of_null()}")
 
+# print(step_1)
+# print(failure_data[vars].describe())
+# print(failure_data.columns)
 print('##############################################################################')
 # Step 3 - Treat skewness in 'Rotational Speed [rpm]'
 print(f"Skew Test before treatement: {preprocessing.skew_test('Rotational speed [rpm]')}")
 failure_data = preprocessing.treat_skewness(skew_column='Rotational speed [rpm]', rename_new_column='rotational_speed_normalised') # make the print statements part of the decision
 print(f"\nSkew Test after treatement: {preprocessing.skew_test('rotational_speed_normalised')}")
-
 print('##############################################################################')
 # Step 4 - Remove outliers
-outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]']
+outlier_columns = ['rotational_speed_normalised', 'Torque [Nm]', 'Process temperature [K]'] # wrong outliers 
 column_stats_before_removing_outliers = preprocessing.describe_statistics(columns=outlier_columns) # print later for comparison
 print('\n')
 failure_data, _, _, = preprocessing.remove_outliers_optimised(outlier_columns,key_ID='UDI', method='IQR', suppress_output=True)
@@ -411,7 +406,12 @@ print('\nAfter Removing Outliers:')
 print(failure_data[outlier_columns].describe())
 print('##############################################################################')
 failure_data = preprocessing.run_diagnostics() # BUG - this does not work, maybe an issue with the class contruction
-print(failure_data)
+print('Expected length of final df should be 9866')
+# print(failure_data)
+
+
+
+
 
 # if __name__ == '__main__':
 #     # Step 1 - Main workflow
