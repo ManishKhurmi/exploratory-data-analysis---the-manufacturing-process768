@@ -1,3 +1,21 @@
+# Imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import math
+import itertools
+from scipy.stats import normaltest, pointbiserialr, pearsonr, chi2_contingency, yeojohnson
+from scipy import stats
+from statsmodels.graphics.gofplots import qqplot
+import statsmodels.formula.api as smf
+from IPython.display import display
+from sklearn.preprocessing import StandardScaler
+from itertools import permutations
+import contextlib
+import io
+import os
+
 class LoadData:
     def __init__(self, file_name):
         """
@@ -343,3 +361,164 @@ class DataTransform:
 
         # Return the best filtered dataframe
         return best_filtered_df, min_combination, combination_percentage_dict
+    
+
+class Models: 
+    def __init__(self, df):
+            self.df = df 
+
+    @staticmethod
+    def r_squared(linear_model, model_name):
+          r2 = linear_model.rsquared
+          print(f"{model_name}: {r2}")
+          
+    @staticmethod
+    def VIF(linear_model, model_name):
+         r2 = linear_model.rsquared
+         print(f'{model_name}: {1/(1-r2)}')
+         return 1/(1-r2)
+
+    def chi_squared_test_df(self, binary_cols):
+        # Store results in a list
+        results = []
+
+        # Loop through all combinations of columns
+        for col1, col2 in itertools.combinations(binary_cols, 2):
+            try:
+                # Filter rows where both col1 and col2 are not NaN or invalid
+                valid_rows = self.df[[col1, col2]].dropna()
+
+                # Create a contingency table for the two columns
+                contingency_table = pd.crosstab(valid_rows[col1], valid_rows[col2])
+                
+                # Perform the Chi-Squared test
+                chi2_stat, p_val, dof, expected = chi2_contingency(contingency_table)
+                
+                # Get the number of valid observations (rows)
+                num_obs = len(valid_rows)
+                
+                # Store the result in the list
+                results.append({
+                    'Variable 1': col1,
+                    'Variable 2': col2,
+                    'Chi-Squared Statistic': chi2_stat,
+                    'P-Value': p_val,
+                    'Degrees of Freedom': dof,
+                })
+                
+            except ValueError as e:
+                # Skip the combination if there is an error
+                print(f"Skipping combination {col1}, {col2} due to error: {e}")
+
+        # Convert results to a DataFrame for easier viewing
+        results_df = pd.DataFrame(results)
+
+        # Display the results
+        return results_df
+    
+    def ols(self, formula='machine_failure ~ air_temperature + process_temperature', model_summary=0):
+        """Fit and return the OLS model, optionally printing summary statistics"""
+        ols_model = smf.ols(formula, self.df).fit()
+        if model_summary == 1:
+            print(ols_model.summary2())
+        return ols_model
+
+    def logit(self, formula='machine_failure ~ air_temperature + process_temperature', model_summary=0):
+        """Fit and return the Logit (logistic regression) model, optionally printing summary statistics"""
+        logit_model = smf.logit(formula, self.df).fit()
+        if model_summary == 1:
+            print(logit_model.summary2())
+        return logit_model
+
+    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False):
+        """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
+        
+        # Optionally standardize the variables
+        if standardize:
+            scaler = StandardScaler()
+            self.df[predictor_vars] = scaler.fit_transform(self.df[predictor_vars])
+
+        # Fit the chosen model: OLS or Logit
+        formula = f'{target_var} ~ ' + ' + '.join(predictor_vars)
+        if model == 'ols':
+            model_fit = self.ols(formula)
+        elif model == 'logit':
+            model_fit = self.logit(formula)
+        else:
+            raise ValueError("Model must be 'ols' or 'logit'.")
+
+        if combine_plots == 1:
+            # Combine all plots into a single plot
+            plt.figure(figsize=(10, 6))
+            for variable in predictor_vars:
+                # Generate a sequence of values over the range of the selected variable
+                x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
+
+                # Create a DataFrame for prediction, setting other variables to their mean dynamically
+                predict_data = pd.DataFrame({
+                    var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
+                })
+
+                # Ensure that only the specific variable changes
+                predict_data[variable] = x_values
+
+                # Predict the target variable using the chosen model
+                predict_data['predicted_values'] = model_fit.predict(predict_data)
+
+                # Plot the regression/logit curve on the same plot
+                plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}')
+
+                # Add data label to the end of each line
+                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
+                         fontsize=9, verticalalignment='center')
+
+            # Customize combined plot
+            plt.title(f'{model.upper()} Regression Curves')
+            plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
+            plt.ylabel(f'Predicted {target_var}')
+            plt.grid(True)
+            plt.legend(loc='upper left', fontsize=9)  # Adjust legend for clarity
+            plt.tight_layout()
+            plt.show()
+
+        else:
+            # Calculate number of plots and dynamic layout for individual plots
+            n_plots = len(predictor_vars)
+            nrows = math.ceil(n_plots / ncols)  # Dynamically determine the number of rows
+
+            # Create subplots with dynamic layout
+            fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 6 * nrows))
+            axes = axes.flatten()  # Flatten the axes array for easy iteration
+
+            for i, variable in enumerate(predictor_vars):
+                # Generate a sequence of values over the range of the selected variable
+                x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
+
+                # Create a DataFrame for prediction, setting other variables to their mean dynamically
+                predict_data = pd.DataFrame({
+                    var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
+                })
+
+                # Ensure that only the specific variable changes
+                predict_data[variable] = x_values
+
+                # Predict the target variable using the chosen model
+                predict_data['predicted_values'] = model_fit.predict(predict_data)
+
+                # Plot the OLS or Logit regression curve in the subplot
+                axes[i].plot(x_values, predict_data['predicted_values'], color='green')
+                axes[i].set_title(f'{model.upper()} Regression Curve for {variable}')
+                axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
+                axes[i].set_ylabel(f'Predicted {target_var}')
+                axes[i].grid(True)
+
+                # Add data label to the end of each line
+                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
+                             fontsize=9, verticalalignment='center')
+
+            # Remove any extra empty subplots if they exist
+            for j in range(i + 1, len(axes)):
+                fig.delaxes(axes[j])
+
+            plt.tight_layout()
+            plt.show()

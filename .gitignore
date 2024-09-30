@@ -1,1 +1,17 @@
+# Credentials 
 credentials.yaml
+
+# Folders 
+__pycache__/
+.vscode/
+
+# .py files to ignore
+
+
+# .ipynb files to ignore 
+
+
+# .csv files to ignore 
+
+
+# .txt files to ignore 
