@@ -366,7 +366,7 @@ class DataTransform:
        
 if __name__=='__main__':
 
-    print('##############################################################################')
+    print('#' * 80)
     print('Step 0: Load the Data')
     load_data = LoadData('failure_data.csv')  # Instantiate the class with your file name
     failure_data_df = load_data.df  # Access the loaded DataFrame
@@ -419,3 +419,5 @@ if __name__=='__main__':
     print(f"Shape of the DataFrame: {info.return_shape()}")
     print(f"Percentage of missing values in each column:\n{info.percentage_of_null()}")
     print(f"List of column names in the DataFrame: {info.column_names()}")
+
+
