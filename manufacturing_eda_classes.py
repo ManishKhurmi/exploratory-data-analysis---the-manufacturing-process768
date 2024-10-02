@@ -362,6 +362,180 @@ class DataTransform:
         # Return the best filtered dataframe
         return best_filtered_df, min_combination, combination_percentage_dict
     
+class Plotter:
+    def __init__(self, df):
+        self.df = df
+        # self.data_info = data_info
+    
+    def histplot(self, column, kde=False, ax=None):
+        if ax is None:
+            ax = plt.gca()  # Get current active axis if none is provided
+        sns.histplot(self.df[column], kde=kde, ax=ax)
+        ax.set_title(f'Histogram for {column}')
+
+    def skew_test(self, column_name):
+        return self.df[column_name].skew()
+
+    def histogram_and_skew_sub_plots(self, variable_list, num_cols=3):
+
+        #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+        num_vars = len(variable_list)
+        #num_cols = 3  # Define number of columns for the subplot grid
+        num_cols = num_cols  # Define number of columns for the subplot grid
+        num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
+
+        # fig, axs = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 5))  # Adjust the figsize as needed
+        fig, axs = plt.subplots(num_rows, num_cols, figsize=(16, num_rows * 5))
+        axs = axs.flatten()  # Flatten the 2D array of axes to 1D for easy iteration
+
+        for idx, column in enumerate(variable_list):
+            ax = axs[idx]
+            # Plot the histogram using the Plotter class's histplot method
+            self.histplot(column, kde=True, ax=ax)
+            # Calculate skewness using the DataInfo class
+            skew_value = self.skew_test(column_name=column)
+            ax.set_title(f'Skew: {skew_value:.2f}')
+
+        # If there are any unused subplots, hide them
+        for j in range(idx + 1, len(axs)):
+            fig.delaxes(axs[j]) # deletes any unused subplots
+        plt.tight_layout()
+        plt.show()
+
+    def plot_qq(self, column, ax=None):
+        if ax is None:
+            ax = plt.gca()  # Get current active axis if none is provided
+        qq_plot= qqplot(self.df[column], scale=1, line ='q', ax=ax)
+        plt.title(f'Q-Q plot for {column}')
+        plt.show()
+    
+    
+    def scatter(self, column_name):
+        scatter_plot = sns.scatterplot(self.df[column_name])
+        plt.show()
+        
+    def boxplot(self, column):
+        box_plot = sns.boxplot(self.df[column])
+        plt.show()
+    
+    def boxplots(self, variable_list):
+
+        # Number of variables
+        num_vars = len(variable_list)
+
+        # Create subplots (1 row, num_vars columns)
+        fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 4, 5))  # Adjust the width and height of the figure
+
+        # Plot each variable
+        for idx, i in enumerate(variable_list):
+            sns.boxplot(data=self.df, y=i, ax=axs[idx])  # y=i for vertical boxplots
+            axs[idx].set_title(f'{i}')
+            axs[idx].set_xlabel('')  # Remove x-axis label to save space
+            axs[idx].set_ylabel('')  # Remove y-axis label to save space
+
+        plt.tight_layout()
+        plt.show()
+
+    
+    def histograms_with_z_score_bounds(self, vars_list):
+
+        # Define Z-score thresholds
+        z_thresholds = [2, 3]
+
+        # Create a figure with subplots in a single row
+        num_vars = len(vars_list)
+        fig, axs = plt.subplots(1, num_vars, figsize=(num_vars * 6, 6))  # Adjust the figsize as needed
+
+        for idx, var in enumerate(vars_list):
+            # Calculate Z-scores for the variable
+            z_scores = (self.df[var] - self.df[var].mean()) / self.df[var].std()
+            
+            # Calculate the percentage of data loss due to each threshold
+            loss_z2 = (z_scores.abs() > 2).mean() * 100
+            loss_z3 = (z_scores.abs() > 3).mean() * 100
+            
+            ax = axs[idx]
+            
+            # Plot the histogram and KDE with a lighter shade of blue for non-outliers
+            sns.histplot(data=self.df, x=var, kde=True, color='cornflowerblue', label='Data', stat="density", ax=ax)
+            
+            # Plot the KDE to get the y-values for the fill_between function
+            kde = sns.kdeplot(data=self.df[var], color='blue', ax=ax)
+            
+            # Calculate the mean and standard deviation
+            mean = self.df[var].mean()
+            std = self.df[var].std()
+
+            # Draw dotted lines for Z-score thresholds and fill the areas for outliers
+            for z in z_thresholds:
+                # Calculate positions of Z-score thresholds
+                lower_bound = mean - z * std
+                upper_bound = mean + z * std
+                
+                # Plot vertical dotted lines
+                ax.axvline(lower_bound, color='black', linestyle='dotted', linewidth=1.5)
+                ax.axvline(upper_bound, color='black', linestyle='dotted', linewidth=1.5)
+                
+                # Get the KDE values for filling
+                kde_y = kde.get_lines()[0].get_ydata()
+                kde_x = kde.get_lines()[0].get_xdata()
+                
+                # Fill the areas representing outliers with a darker shade
+                ax.fill_between(kde_x, kde_y, where=((kde_x <= lower_bound) | (kde_x >= upper_bound)), 
+                                color='darkblue', alpha=0.7, label=f'Outliers (|Z| > {z})')
+                
+                # Further lower the Z-score labels for better readability
+                if var in ['Rotational speed [rpm]', 'Torque [Nm]']:
+                    y_position = max(kde_y) * 0.40  # Lower the position more for these variables
+                else:
+                    y_position = max(kde_y) * 0.85  # Keep higher position for others
+                
+                # Add bold, centered text labels for Z-scores as absolute values
+                ax.text(lower_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
+                        color='black', weight='bold', fontsize=10)
+                ax.text(upper_bound, y_position, f'|Z| = {z}', horizontalalignment='center', 
+                        color='black', weight='bold', fontsize=10)
+            
+            # Adding title and labels
+            ax.set_title(f'Histogram of {var}')
+            ax.set_xlabel(var)
+            ax.set_ylabel('Density')
+            
+            # Move the data loss statistics box down
+            ax.text(0.95, 0.65, f'Data Loss:\n|Z| > 2: {loss_z2:.2f}%\n|Z| > 3: {loss_z3:.2f}%', 
+                    transform=ax.transAxes, fontsize=10, verticalalignment='top', 
+                    horizontalalignment='right', weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+            
+            # Add the legend
+            ax.legend(loc='upper right', fontsize='8', frameon=True, shadow=True, borderpad=1)
+
+        plt.tight_layout()
+        plt.show()
+
+    def correlation_heatmap(self, figsize=(12, 10), threshold=0, ax=None):
+        """
+        Generates a correlation heatmap, optionally filtered by a correlation threshold.
+        
+        Parameters:
+        - figsize: tuple, size of the figure.
+        - threshold: float, correlations lower than this value will not be shown.
+        - ax: matplotlib.axes, specify the axes for plotting when using subplots.
+        """
+        corr_matrix = self.df.corr()
+
+        # Apply threshold by setting values below the threshold to NaN (to not show them)
+        filtered_corr_matrix = corr_matrix.copy()
+        filtered_corr_matrix[abs(filtered_corr_matrix) < threshold] = None
+
+        # Create heatmap on the provided axes (or a new figure if ax is None)
+        if ax is None:
+            plt.figure(figsize=figsize)
+            sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm')
+            plt.title('Correlation Heatmap')
+            plt.show()
+        else:
+            sns.heatmap(filtered_corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
+            ax.set_title('Correlation Heatmap')
 
 class Models: 
     def __init__(self, df):

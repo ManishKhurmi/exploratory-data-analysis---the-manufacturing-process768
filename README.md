@@ -2,8 +2,9 @@
 
 ## Installation instructions
 run in the following order:
-1. Run db_utils_v3.ipynb
-2. EDA_DataTransformation_v2.py
+1. Run db_utils.ipynb
+
+
 
 ## Table of Contents, if the README file is long
 
