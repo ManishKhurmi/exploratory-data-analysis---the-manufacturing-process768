@@ -372,6 +372,7 @@ class Plotter:
             ax = plt.gca()  # Get current active axis if none is provided
         sns.histplot(self.df[column], kde=kde, ax=ax)
         ax.set_title(f'Histogram for {column}')
+        plt.show
 
     def skew_test(self, column_name):
         return self.df[column_name].skew()

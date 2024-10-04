@@ -51,7 +51,6 @@ if __name__=='__main__':
     print('##############################################################################')
     print('Step 5: Run Diagnostics')
     info = DataFrameInfo(failure_data_df)
-
     print(f"Shape of the DataFrame: {info.return_shape()}")
     print(f"Percentage of missing values in each column:\n{info.percentage_of_null()}")
     print(f"List of column names in the DataFrame: {info.column_names()}")
