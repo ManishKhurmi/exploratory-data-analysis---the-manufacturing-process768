@@ -69,7 +69,7 @@ print(f"\nAfter Removing outliers: {info.describe_statistics(outlier_columns)}")
 print('##############################################################################')
 
 # Analyses and Visualisation 
-
+# TODO: consider doing at the beginning of preprocessing 
 # Task 1: Current operating ranges 
 dt = DataTransform(failure_data_df)
 machine_failure_col_mapping = {
@@ -78,7 +78,12 @@ machine_failure_col_mapping = {
     'Process temperature [K]': 'process_temperature',
     'Rotational speed [rpm]': 'rotational_speed_actual',
     'Torque [Nm]': 'torque',
-    'Tool wear [min]': 'tool_wear'
+    'Tool wear [min]': 'tool_wear',
+    'TWF': 'tool_wear_failure',
+    'HDF': 'head_dissapation_failure',
+    'PWF': 'power_failure',
+    'OSF': 'overstrain_failure',
+    'RNF': 'random_failure'
 }
 
 # rename df 
@@ -135,7 +140,8 @@ import matplotlib.pyplot as plt
 # T2a) Determine and visualise how many failures have happened in the process, what percentage is this of the total? 
 
 # T2a) Barplot of machine failures 
-failure_types = ['machine_failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
+# failure_types = ['machine_failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
+failure_types = ['machine_failure', 'tool_wear_failure', 'head_dissapation_failure', 'power_failure','overstrain_failure','random_failure']
 
 # Barplot
 # ax = sns.barplot(failure_data_df[failure_types], estimator = sum, ci=None) 
@@ -175,18 +181,28 @@ print('\n')
 percentage_failures_df = failure_sum_df / len(failure_data_df) * 100 
 print(percentage_failures_df) # TODO: needs a column heading
 
-# total_percentage_failures = percentage_failures_df.sum()
-# print(percentage_failures_df)
-
-ax = sns.barplot(percentage_failures_df)
+# Barplot of Percentage Failures
+ax = sns.barplot(percentage_failures_df, color='red')
 for container in ax.containers:
-    ax.bar_label(container, fmt='%.2f') # formating for integer 
+    ax.bar_label(container, fmt='%.2f%%') 
+ax.set_title('Percentage of Failures (%)')
+ax.set_ylabel('Percentage (%) ')
+ax.set_ylim(0, percentage_failures_df.max() * 1.2) 
+ax.set_xlabel('Failure Types')
+# Rotate x-axis lables
+ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
 plt.show()
 
 # Check if the failures are being caused based on the quality of the product.
     # calculate the % split of Types (L, M, H) across the data set
     # % Machine failures based on Type e.g. 30% are due to Low quality etc (not actuals)
 
+# Count of Product Types
+# ax = sns.countplot(failure_data_df, x='Type', palette='Blues')
+# for container in ax.containers:
+#     ax.bar_label(container, fmt='%.0f') # integer formatting
+# ax.set_title('Count of Product Types')
+# plt.show()
 
 # What seems to be the leading causes of failure in the process? 
     # Create a visualisation of the number of failures due to each possible cause during the manufacturing process.
