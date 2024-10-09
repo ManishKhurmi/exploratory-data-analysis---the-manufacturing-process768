@@ -1,5 +1,6 @@
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform, Plotter, Models
 import pandas as pd
+pd.set_option('display.max_columns', None)
 
 # print('#'* 100)
 # load_data = LoadData('failure_data.csv')
@@ -143,11 +144,10 @@ import matplotlib.pyplot as plt
 # failure_types = ['machine_failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
 failure_types = ['machine_failure', 'tool_wear_failure', 'head_dissapation_failure', 'power_failure','overstrain_failure','random_failure']
 
-# Barplot
+# Barplot: Number of Failures per Failure Type
 # ax = sns.barplot(failure_data_df[failure_types], estimator = sum, ci=None) 
 # for container in ax.containers:
 #     ax.bar_label(container, fmt='%.0f') # formating for integer 
-
 # plt.show()
 
 print('\n')
@@ -161,13 +161,12 @@ sum_of_other_machine_failures = sum(failure_sum_df[1:])
 are_failures_equal = machine_failure_total == sum_of_other_machine_failures
 
 # check if the other machine failure types equal the machine_failure count
-print(f'Do the Total number of other machine failure types (RNF, PWF,..etc) equal the `machine_failure` total?: \n{are_failures_equal}')
+print(f'Do the Total number of other failure types (RNF, PWF,..etc) equal the `machine_failure` total?: \n{are_failures_equal}')
 
 if not are_failures_equal:
     print('''This result is `False`, indicating that the `machine_failure` flag can represent 
          multiple failure types for a single observation. For example, one observation can contain both 
          a random failure and a PWF failure.''')
-
 
 # - **TWF (tool wear failure)**: Failure in the process due to the tool wearing out
 # - **head dissipation failure (HDF)**: Lack of heat dissipation caused the process failure
@@ -175,8 +174,38 @@ if not are_failures_equal:
 # - **overstrain failure (OSF)**: Failure due to the tool overstraining during the process
 # - **random failures (RNF)**: Failures in the process which couldn't be categorised
 ##################################################################################################
+#T2a) Determine and visualise how many failures have happened in the process
 
-# T2a) Calculate the % machine failures 
+print('#' * 100)
+# print(failure_data_df[failure_types].head())
+
+# Create a new 'failure' column using the bitwise OR operator to check for any failure
+failure_data_df['failure'] = (
+    (failure_data_df['machine_failure'] == 1) | 
+    (failure_data_df['tool_wear_failure'] == 1) | 
+    (failure_data_df['head_dissapation_failure'] == 1) | 
+    (failure_data_df['power_failure'] == 1) | 
+    (failure_data_df['overstrain_failure'] == 1) | 
+    (failure_data_df['random_failure'] == 1)
+).astype(int)
+
+print('Number of Failures is defined as observation that failured for ANY failure type')
+number_of_failures = failure_data_df['failure'].sum()
+print(f"Number of Failures: {number_of_failures}")
+
+percentage_failure_rate = (number_of_failures/ len(failure_data_df)) * 100
+print(f"Percentage Failure Rate: {percentage_failure_rate}")
+
+ax = sns.countplot(failure_data_df, x='failure', color='red')
+# Add data labels to each bar
+ax.bar_label(ax.containers[0])
+plt.title('Number of Failures (0 vs 1)')
+plt.xlabel('Failure')
+plt.ylabel('Count')
+# Show the plot
+plt.show()
+
+# # T2a) Calculate the % failure for each failure type
 print('\n')
 percentage_failures_df = failure_sum_df / len(failure_data_df) * 100 
 print(percentage_failures_df) # TODO: needs a column heading
@@ -185,7 +214,7 @@ print(percentage_failures_df) # TODO: needs a column heading
 ax = sns.barplot(percentage_failures_df, color='red')
 for container in ax.containers:
     ax.bar_label(container, fmt='%.2f%%') 
-ax.set_title('Percentage of Failures (%)')
+ax.set_title(' Failure Rate (%) per Failure Type')
 ax.set_ylabel('Percentage (%) ')
 ax.set_ylim(0, percentage_failures_df.max() * 1.2) 
 ax.set_xlabel('Failure Types')
@@ -193,17 +222,95 @@ ax.set_xlabel('Failure Types')
 ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
 plt.show()
 
-# Check if the failures are being caused based on the quality of the product.
-    # calculate the % split of Types (L, M, H) across the data set
-    # % Machine failures based on Type e.g. 30% are due to Low quality etc (not actuals)
+# # Check if the failures are being caused based on the quality of the product.
+#     # calculate the % split of Types (L, M, H) across the data set
+#     # % Machine failures based on Type e.g. 30% are due to Low quality etc (not actuals)
 
-# Count of Product Types
-# ax = sns.countplot(failure_data_df, x='Type', palette='Blues')
-# for container in ax.containers:
-#     ax.bar_label(container, fmt='%.0f') # integer formatting
-# ax.set_title('Count of Product Types')
+# Countplot: Product Types
+ax = sns.countplot(failure_data_df, x='Type', palette='Blues')
+for container in ax.containers:
+    ax.bar_label(container, fmt='%.0f') # integer formatting
+ax.set_title('Count of Product Types')
+plt.show()
+
+
+# Barplot: Failure Types split by Product Type
+
+# Group by 'Type' and sum the failure columns
+failures_per_type = failure_data_df.groupby('Type')[['machine_failure','tool_wear_failure', 'head_dissapation_failure', 'power_failure', 'overstrain_failure', 'random_failure']].sum()
+
+# Reset Index
+failures_per_type = failures_per_type.reset_index()
+
+# Ensure the 'Type' column is categorical and ordered as 'L', 'M', 'H'
+failures_per_type['Type'] = pd.Categorical(failures_per_type['Type'], categories=['L', 'M', 'H'], ordered=True)
+
+# Reindex to ensure order
+failures_per_type = failures_per_type.set_index('Type').loc[['L', 'M', 'H']]
+
+# Convert the DataFrame back to a long format using melt
+failures_per_type_melted = failures_per_type.reset_index().melt(id_vars='Type', var_name='Failure Type', value_name='Count')
+
+# Define custom colors: different shades of red for 'L', 'M', 'H'
+custom_palette = {
+    'L': '#d73027',  # Dark red
+    'M': '#f46d43',  # Medium red
+    'H': '#fdae61'   # Light red
+}
+
+# Plot using seaborn's barplot with custom colors based on the product type (L, M, H)
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Failure Type', y='Count', hue='Type', data=failures_per_type_melted, palette=custom_palette)
+
+# Add labels and title
+plt.title('Failures per Product Type')
+plt.xlabel('Failure Type')
+plt.ylabel('Count of Failures')
+plt.legend(title='Product Type')
+
+# Show the plot
+plt.xticks(rotation=45)
+plt.show()
+
+print('Leading cause of failure is product type L, overstrain_failure and head_dissapation_failures are the highest across the produ')
+##################################################################################################
+# Scratch work
+# Using Group By (not needed)
+# Count Plot Count of Failure Types split by Product Type
+# group_by_product_type_df = failure_data_df.groupby('Type')
+# print('\n')
+# print(f"Number of Groups: {len(group_by_product_type_df)}")
+# check if this is what is expected 
+# for group_name, grouped_df in group_by_product_type_df:
+#     print(f"Group: {group_name}")
+#     print(f"Length of df: {len(grouped_df)}")
+#     print("\n")
+
+# X-axis: Failure Types y = Count of Failures split by Type
+# Group the failures by 'Type' and sum the failure columns 
+# failures_per_type = failure_data_df.groupby('Type')[['tool_wear_failure', 'head_dissapation_failure', 'power_failure', 'overstrain_failure', 'random_failure']].sum()
+# # Transpose the DataFrame to swap rows and columns
+# failures_per_type = failures_per_type.T
+# # Reorder the columns to be 'L', 'M', 'H'
+# failures_per_type = failures_per_type[['L', 'M', 'H']]
+# # Failures per Failure Type Split by Product Type
+# failures_per_type.plot(kind='bar', figsize=(10,6))
+# plt.title('Failures per Failure Type Split by Product Type')
+# plt.xticks(rotation=45)
+# plt.ylabel('Count of Failures')
+# plt.legend(title='Product Type')
 # plt.show()
 
+# print(failure_data_df.head(3))
+# Count Plot: Number of Machine Failures in out data set
+# sns.countplot(data=failure_data_df, x='machine_failure')
+# plt.show()
+# print(failure_data_df.columns)
+# print(failure_data_df.head(1))
+
+
+
+#
 # What seems to be the leading causes of failure in the process? 
     # Create a visualisation of the number of failures due to each possible cause during the manufacturing process.
         # bar chart of the different failure types 
