@@ -73,3 +73,20 @@ why is it a bad idea to use the `R^2` from a model that only regresses the varia
 - Omitted Variable Bias 
 - incomplete multicolinearity assessment: multicolinearity can arise from the interactions among multiple variables simultaneously
 - Higher-order affects: not just pairs, e.g. a pair that are correlated with a single variable 
+
+############################################################################################################################################
+What is a `DataFrameGroupBy` object?
+This object is like a dictionary, where the keys are the unique values in column we grouped by. 
+- Example using 'Type':
+{
+    'L': DataFrame containing rows where Type == 'L',
+    'M': DataFrame containing rows where Type == 'M',
+    'H': DataFrame containing rows where Type == 'H'
+}
+
+# check if this is what is expected 
+# for group_name, grouped_df in group_by_product_type_df:
+#     print(f"Group: {group_name}")
+#     print(f"Length of df: {len(grouped_df)}")
+#     print("\n")
+############################################################################################################################################

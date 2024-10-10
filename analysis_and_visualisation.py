@@ -87,40 +87,40 @@ machine_failure_col_mapping = {
     'OSF': 'overstrain_failure',
     'RNF': 'random_failure'
 }
-
 # rename df 
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
+
 failure_data_df.head(2)
 print(failure_data_df.columns)
 
-# columns_of_interest = ['air_temperature', 'process_temperature', 'rotational_speed_actual','torque', 'tool_wear']
+columns_of_interest = ['air_temperature', 'process_temperature', 'rotational_speed_actual','torque', 'tool_wear']
 
-# def range_df(df, columns):
-#     min_values = df[columns].min()
-#     max_values = df[columns].max()
+def range_df(df, columns):
+    min_values = df[columns].min()
+    max_values = df[columns].max()
 
-#     range_df = pd.DataFrame({
-#     'Variables': columns,
-#     'Min': min_values.values,
-#     'Max': max_values.values
-#     })
+    range_df = pd.DataFrame({
+    'Variables': columns,
+    'Min': min_values.values,
+    'Max': max_values.values
+    })
 
-#     range_df.set_index('Variables', inplace=True)
-#     return range_df
+    range_df.set_index('Variables', inplace=True)
+    return range_df
 
-# print('#'*80)
-# print('Range of Variables across failure_data')
-# range_df_failure_data = range_df(failure_data_df, columns=['air_temperature', 'process_temperature', 'rotational_speed_actual','torque', 'tool_wear'])
-# print(range_df_failure_data)
+print('#'*80)
+print('Range of Variables across failure_data')
+range_df_failure_data = range_df(failure_data_df, columns=['air_temperature', 'process_temperature', 'rotational_speed_actual','torque', 'tool_wear'])
+print(range_df_failure_data)
 
-# print('#'*80)
-# unique_product_types = failure_data_df['Type'].unique()
+print('#'*80)
+unique_product_types = failure_data_df['Type'].unique()
 
-# for i in unique_product_types:
-#     print(f"\nProduct Type {i}:")
-#     filtered_df = failure_data_df[failure_data_df['Type'] == i]
-#     type_range_df = range_df(filtered_df, columns=columns_of_interest)
-#     print(type_range_df)
+for i in unique_product_types:
+    print(f"\nProduct Type {i}:")
+    filtered_df = failure_data_df[failure_data_df['Type'] == i]
+    type_range_df = range_df(filtered_df, columns=columns_of_interest)
+    print(type_range_df)
 
 
 # ##################################################################################################
@@ -277,9 +277,9 @@ print(failure_data_df.columns)
 
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform, Plotter, Models
 
-print(failure_data_df.head())
-print(failure_data_df.columns)
-dt = DataTransform(failure_data_df)
+# print(failure_data_df.head())
+# print(failure_data_df.columns)
+# dt = DataTransform(failure_data_df)
 # failure_data_df = dt.drop_column(['UDI', 'Type'])
 
 # # Initialize the Plotter with DataFrame
@@ -325,8 +325,8 @@ bool_type_L_only = failure_data_df['Type']=='L'
 type_L_df = failure_data_df[bool_type_L_only]
 
 type_L_model = Models(type_L_df)
-# type_L_model.plot_model_curves(predictor_vars, target_var='overstrain_failure', model='logit', ncols=3, standardize=False) # **L & OSF** #TODO: find the inflection points here 
-# type_L_model.plot_model_curves(predictor_vars, target_var='head_dissapation_failure', model='logit', ncols=3, standardize=False) # **L & HDF** # #TODO find the inflection points here
+type_L_model.plot_model_curves(predictor_vars, target_var='overstrain_failure', model='logit', ncols=3, standardize=False) # **L & OSF** #TODO: find the inflection points here 
+type_L_model.plot_model_curves(predictor_vars, target_var='head_dissapation_failure', model='logit', ncols=3, standardize=False) # **L & HDF** # #TODO find the inflection points here
 # type_L_model.plot_model_curves(predictor_vars, target_var='random_failure', model='logit', ncols=3, standardize=False) # L & HDF
 # type_L_model.plot_model_curves(predictor_vars, target_var='machine_failure', model='logit', ncols=3, standardize=False) # L & machine failure 
 
@@ -337,9 +337,14 @@ failure_data_df = dt.drop_column(['UDI', 'Type'])
 model = Models(failure_data_df)
 
 model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False) # For each of these find the inflection point to set the criteria 
+# Inflection point from the whole df 
 
-#TODO: Find the inflection point of the logistic curves of interest to set the criteria 
+logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+
+
 # 3d) If you find any insight into when the machine is likely to fail then develop a strategy on how the machine might be setup to avoid this.
+#TODO: Put the following model curve sets in the notebook & set the critera based on them
+#TODO: Using the criteria, give an estimate to how many less products this may mean to the company, to see if it is worthwhile.
 ##################################################################################################
 
 
@@ -403,3 +408,8 @@ model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=Fals
         # bar chart of the different failure types 
 
 
+
+# inflection_points = model.calculate_inflection_points(predictor_vars)
+# print(inflection_points)
+
+# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
