@@ -211,6 +211,58 @@ class Models:
             plt.tight_layout()
             plt.show()
 
+    def plot_derivatives_separately(self, predictor_vars, model='logit', combine_plots=False):
+        """Plot first and second derivatives separately or combined for each predictor variable."""
+        
+        # Fit the chosen model
+        formula = f'machine_failure ~ ' + ' + '.join(predictor_vars)
+        if model == 'logit':
+            model_fit = self.logit(formula)
+        else:
+            raise ValueError("Model must be 'logit' for derivatives.")
+        
+        # Get coefficients for derivatives
+        coefficients = model_fit.params
+
+        # Generate plots for first and second derivatives
+        for variable in predictor_vars:
+            x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
+            first_deriv = self.first_derivative(x_values, coefficients)
+            second_deriv = self.second_derivative(x_values, coefficients)
+
+            if combine_plots:
+                # Combine first and second derivatives into one plot
+                plt.figure(figsize=(10, 5))
+                plt.plot(x_values, first_deriv, label=f'{variable} First Derivative', color='green')
+                plt.plot(x_values, second_deriv, label=f'{variable} Second Derivative', color='red', linestyle='--')
+                plt.title(f'First and Second Derivatives of {variable}')
+                plt.xlabel(variable)
+                plt.ylabel('Derivative Values')
+                plt.grid(True)
+                plt.legend()
+                plt.show()
+
+            else:
+                # Plot first derivative
+                plt.figure(figsize=(10, 5))
+                plt.plot(x_values, first_deriv, label=f'{variable} First Derivative', color='green')
+                plt.title(f'First Derivative of {variable}')
+                plt.xlabel(variable)
+                plt.ylabel('First Derivative')
+                plt.grid(True)
+                plt.legend()
+                plt.show()
+
+                # Plot second derivative
+                plt.figure(figsize=(10, 5))
+                plt.plot(x_values, second_deriv, label=f'{variable} Second Derivative', color='red')
+                plt.title(f'Second Derivative of {variable}')
+                plt.xlabel(variable)
+                plt.ylabel('Second Derivative')
+                plt.grid(True)
+                plt.legend()
+                plt.show()
+
 
 dt = DataTransform(failure_data_df)
 machine_failure_col_mapping = {
@@ -230,7 +282,10 @@ failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
 
 model = Models(failure_data_df)
 predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
-# # model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
+logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+ols_model_machine_failure = model.ols(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
 
 
 # inflection_points = model.calculate_inflection_points(predictor_vars)
@@ -238,12 +293,35 @@ predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'proce
 
 # model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
 
-bool_type_L_only = failure_data_df['Type']=='L'
-type_L_df = failure_data_df[bool_type_L_only]
+# bool_type_L_only = failure_data_df['Type']=='L'
+# type_L_df = failure_data_df[bool_type_L_only]
+# type_L_model = Models(type_L_df)
+# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
+# type_L_model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
 
-type_L_model = Models(type_L_df)
 
-model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
-type_L_model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
+# bool_type_M_only = failure_data_df['Type']=='M'
+# type_M_df = failure_data_df[bool_type_M_only]
+# type_M_model = Models(type_M_df)
+# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
+# type_M_model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True)
+
+# bool_type_H_only = failure_data_df['Type']=='H'
+# type_H_df = failure_data_df[bool_type_H_only]
+# type_H_model = Models(type_H_df)
+# model.plot_model_curves(predictor_vars, target_var='head_dissapation_failure',model='logit', ncols=3, standardize=True, plot_derivatives=True)
+# type_H_model.plot_model_curves(predictor_vars, 'head_dissapation_failure', model='logit', ncols=3, standardize=True, plot_derivatives=True)
+
+
+# type_L_model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True)
+
+# Derivative Plot *
+model.plot_model_curves(predictor_vars, model='logit', standardize=True, plot_derivatives=True)
+# model.plot_derivatives_separately(predictor_vars=['tool_wear'], model='logit', combine_plots=1)
+
+
+
+
+
 
 # TODO: put this in the appendix of the ipynb notebook.

@@ -121,6 +121,20 @@ class DataFrameInfo:
         print("\n")
         print(f"Number of observations with outliers based on z-score threshold ±3: {outliers_3}")
         print(f"Percentage of observations with outliers based on z-score threshold ±3: {percentage_outliers_thereshold_3}")
+    
+    def range_df(self, columns):
+        '''Returns the range of each column of the df'''
+        min_values = self.df[columns].min()
+        max_values = self.df[columns].max()
+
+        range_df = pd.DataFrame({
+        'Variables': columns,
+        'Min': min_values.values,
+        'Max': max_values.values
+        })
+
+        range_df.set_index('Variables', inplace=True)
+        return range_df
 
 
 class DataTransform:
