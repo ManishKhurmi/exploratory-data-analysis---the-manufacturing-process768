@@ -226,7 +226,35 @@ class Models:
 
         return minima_coordinates
 
+    def unscale_minima_coordinates(self, minima_coordinates):
+        """Convert the scaled minima points into unscaled values using the inverse transform of the StandardScaler."""
+        unscaled_minima = {}
 
+        # Iterate over the predictor variables in minima_coordinates
+        for variable in minima_coordinates:
+            unscaled_minima[variable] = {}
+
+            # Fit the scaler individually for each predictor variable
+            scaler = StandardScaler()
+            scaled_variable = self.df[[variable]]  # Get the variable as a DataFrame (2D array)
+            scaler.fit(scaled_variable)  # Fit the scaler on this single variable
+
+            for derivative, (scaled_x, scaled_y) in minima_coordinates[variable].items():
+                # If scaled_x is None (no minimum found), leave it as None
+                if scaled_x is None:
+                    unscaled_x = None
+                else:
+                    # Inverse transform the scaled x-value for the current variable
+                    scaled_array = np.array(scaled_x).reshape(-1, 1)  # Reshape to 2D as required by the scaler
+                    unscaled_x = scaler.inverse_transform(scaled_array)[0, 0]  # Inverse transform and extract the value
+
+                # Since y-values (predicted values) are usually not standardized, we can keep scaled_y as is
+                unscaled_y = scaled_y  # Assuming y-values were not scaled
+
+                # Store the unscaled values in the dictionary
+                unscaled_minima[variable][derivative] = (unscaled_x, unscaled_y)
+
+        return unscaled_minima
 
 
 
@@ -573,11 +601,67 @@ machine_failure_col_mapping = {
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
 
 model = Models(failure_data_df)
-predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
-# logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+# predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
+# # logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+# # model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=False )
+# minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
 
-# # model.plot_model_curves(['torque'], model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=False )
-minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
+# print('actual minima dict: \n')
+# print(minima_coords)
+
+
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+
+# test_minima_coordinates = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
+
+
+unscaled_dict = model.unscale_minima_coordinates(test_minima_coordinates)
+print('Unscaled Cords:')
+print(unscaled_dict)
+
+
+
+# print(type(minima_coords))
+
+# actual minima dict: 
+
+# {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.302532048803255, -0.09621497698616391)}, 
+#  'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)}, 
+#  'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)}, 
+#  'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)}, 
+#  'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}}
+
+
+# #####
+# # Example usage after fitting the scaler on the predictor variables from minima_coordinates:
+# test_minima_coordinates = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
+
+
+# print('test: \n')
+# print(test_minima_coordinates)
+
+
+
+# # Unscale the minima coordinates:
+# unscaled_minima = model.unscale_minima_coordinates(test_minima_coordinates)
+# print('\n\n')
+# print(unscaled_minima)
+
+
 
 # print(minima_coords)
 # model.plot_model_curves(
