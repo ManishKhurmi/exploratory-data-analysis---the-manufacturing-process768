@@ -449,9 +449,6 @@ result = impact_of_strategy(strategy_logit_machine_failure_all_product_types, fa
 print(result)
 
 
-
-
-
 #TODO: Put the following model curve sets in the notebook & set the critera based on them
 #TODO: Using the criteria, give an estimate to how many less products this may mean to the company, to see if it is worthwhile.
 ##################################################################################################

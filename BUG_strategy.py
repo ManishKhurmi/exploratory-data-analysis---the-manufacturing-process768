@@ -100,8 +100,10 @@ class Models:
                 local_min_y = y_values[i]
                 break  # Return the first local minimum found
         return local_min_x, local_min_y
-    
-    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False, plot_derivatives=False, local_minima=False):
+
+    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
+                        ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
+                        theoretical_strategy=None, business_strategy=None):
         """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
         
         # Optionally standardize the variables
@@ -136,30 +138,38 @@ class Models:
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}', color='blue')
+                plt.plot(x_values, predict_data['predicted_values'], label=f'Variable', color='blue')
+
+                # Plot theoretical_strategy vertical lines if provided
+                if theoretical_strategy and variable in theoretical_strategy:
+                    for x_val in theoretical_strategy[variable]:
+                        plt.axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
+
+                # Plot business_strategy vertical lines if provided
+                if business_strategy and variable in business_strategy:
+                    for x_val in business_strategy[variable]:
+                        plt.axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
 
                     if plot_derivatives:
-                        plt.plot(x_values, y_first_derivative, label=f'{variable} First Derivative', linestyle='--', color='green')
-                        plt.plot(x_values, y_second_derivative, label=f'{variable} Second Derivative', linestyle=':', color='red')
+                        plt.plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+                        plt.plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
 
                     if local_minima:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates[variable] = {
-                            'first_derivative_min': (first_min_x, first_min_y),
-                            'second_derivative_min': (second_min_x, second_min_y)
-                        }
+                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
-                        plt.scatter(first_min_x, first_min_y, color='orange', label=f'{variable} First Derivative Min')
-                        plt.scatter(second_min_x, second_min_y, color='purple', label=f'{variable} Second Derivative Min')
+                        plt.scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+                        plt.scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
 
-                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
+                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
 
             plt.title(f'{model.upper()} Regression Curves')
             plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
@@ -183,34 +193,46 @@ class Models:
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'{variable}')
+                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'Variable')
+
+                # Plot theoretical_strategy vertical lines if provided
+                if theoretical_strategy and variable in theoretical_strategy:
+                    for x_val in theoretical_strategy[variable]:
+                        axes[i].axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
+
+                # Plot business_strategy vertical lines if provided
+                if business_strategy and variable in business_strategy:
+                    for x_val in business_strategy[variable]:
+                        axes[i].axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
 
                     if plot_derivatives:
-                        axes[i].plot(x_values, y_first_derivative, label=f'{variable} First Derivative', linestyle='--', color='green')
-                        axes[i].plot(x_values, y_second_derivative, label=f'{variable} Second Derivative', linestyle=':', color='red')
+                        axes[i].plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+                        axes[i].plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
 
                     if local_minima:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates[variable] = {
-                            'first_derivative_min': (first_min_x, first_min_y),
-                            'second_derivative_min': (second_min_x, second_min_y)
-                        }
+                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
-                        axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'{variable} First Derivative Min')
-                        axes[i].scatter(second_min_x, second_min_y, color='purple', label=f'{variable} Second Derivative Min')
+                        axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+                        axes[i].scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
 
                 axes[i].set_title(f'{model.upper()} Regression Curve for {variable}')
                 axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
                 axes[i].set_ylabel(f'Predicted {target_var}')
                 axes[i].grid(True)
-                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
+                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+
+            # Hide any extra axes
+            for j in range(i + 1, len(axes)):
+                fig.delaxes(axes[j])
 
             handles, labels = axes[i].get_legend_handles_labels()
             fig.legend(handles, labels, loc='upper right', fontsize=9)
@@ -263,15 +285,53 @@ machine_failure_col_mapping = {
     'OSF': 'overstrain_failure',
     'RNF': 'random_failure'
 }
-
 # Setup df & instances 
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
+
 model = Models(failure_data_df)
 predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
 
+failure_data_df_copy = failure_data_df.copy()
+# # Plot of Actuals with Derivatives - Shows that the fist and second derivative don't tell us much as the values are not interpretable with Actuals & logistic regression.
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
+
+# # Plot of Standardised Vars with first and second derivatives 
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
+
+model = Models(failure_data_df_copy)
+predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
+# Dictionary with vertical lines for each predictor variable
+theoretical_strategy = {
+    'torque': [50],
+    'rotational_speed_actual': [1750],
+    'air_temperature': [300],  # Vertical lines at 15 and 25
+    'process_temperature': [310],  # Vertical lines at 70 and 80
+    'tool_wear': [190]
+}
+business_strategy = {
+    'torque': [60],
+    'rotational_speed_actual': [1900],
+    'air_temperature': [304],  # Vertical lines at 15 and 25
+    'process_temperature': [312],  # Vertical lines at 70 and 80
+    'tool_wear': [200]
+}
+# Final Strategy
+minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=True, theoretical_strategy=theoretical_strategy, 
+                                        business_strategy=business_strategy)
+
+
+model.unscale_minima_coordinates((minima_coordinates=minima_coords)
+
+# expected = {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (49.71993233139408, -0.09621497698616391)}, 
+#  'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1750.9393939393938, -0.09622486847047655)}, 
+#  'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
+#  'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
+#  'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
+
 
 # Models & Minima 
-# # logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+# logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+# ols = model.ols(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
 # # model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=False )
 # minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
 # print('actual minima dict: \n')
@@ -282,26 +342,28 @@ predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'proce
 # print('Unscaled Cords:')
 # print(unscaled_dict)
 
-minima_coords = {
-    'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
-    'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-    'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-    'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-    'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-}
+# minima_coords = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
 
 ######################################################################################################
 # Testing 
-test_minima_coordinates = {
-    'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
-    'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-    'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-    'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-    'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-}
-unscaled_dict = model.unscale_minima_coordinates(test_minima_coordinates)
-print('Unscaled Cords:')
-print(unscaled_dict)
+# failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
+# model = Models(failure_data_df)
+# test_minima_coordinates = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
+# unscaled_dict = model.unscale_minima_coordinates(test_minima_coordinates)
+# print('Unscaled Cords:')
+# print(unscaled_dict)
 
 # Corrently unscaled variables 
 # Unscaled Cords:
@@ -310,6 +372,9 @@ print(unscaled_dict)
 #  'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
 #  'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
 #  'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
+
+
+
 ######################################################################################################
 
 

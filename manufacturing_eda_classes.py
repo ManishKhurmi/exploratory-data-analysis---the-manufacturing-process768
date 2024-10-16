@@ -619,7 +619,30 @@ class Models:
             print(logit_model.summary2())
         return logit_model
 
-    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False):
+    def first_derivative(self, x, coefficients):
+        """Calculate the first derivative of the logistic regression curve."""
+        # This assumes the logistic function f(x) = 1 / (1 + exp(- (b0 + b1 * x)))
+        return np.exp(-x) / (1 + np.exp(-x))**2
+
+    def second_derivative(self, x, coefficients):
+        """Calculate the second derivative of the logistic regression curve."""
+        # Second derivative for logistic regression
+        return -np.exp(-x) * (1 - np.exp(-x)) / (1 + np.exp(-x))**3
+
+    def find_local_minima(self, x_values, y_values):
+        """Helper function to find local minima in a given set of x and y values."""
+        local_min_x = None
+        local_min_y = None
+        for i in range(1, len(y_values) - 1):
+            if y_values[i - 1] > y_values[i] < y_values[i + 1]:
+                local_min_x = x_values[i]
+                local_min_y = y_values[i]
+                break  # Return the first local minimum found
+        return local_min_x, local_min_y
+
+    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
+                        ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
+                        theoretical_strategy=None, business_strategy=None):
         """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
         
         # Optionally standardize the variables
@@ -636,78 +659,216 @@ class Models:
         else:
             raise ValueError("Model must be 'ols' or 'logit'.")
 
+        # Get the coefficients for the model (used for derivatives)
+        coefficients = model_fit.params
+
+        minima_coordinates = {}
+
         if combine_plots == 1:
             # Combine all plots into a single plot
             plt.figure(figsize=(10, 6))
             for variable in predictor_vars:
-                # Generate a sequence of values over the range of the selected variable
                 x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
 
                 # Create a DataFrame for prediction, setting other variables to their mean dynamically
                 predict_data = pd.DataFrame({
                     var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
                 })
-
-                # Ensure that only the specific variable changes
                 predict_data[variable] = x_values
-
-                # Predict the target variable using the chosen model
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                # Plot the regression/logit curve on the same plot
-                plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}')
+                plt.plot(x_values, predict_data['predicted_values'], label=f'Variable', color='blue')
 
-                # Add data label to the end of each line
-                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
-                         fontsize=9, verticalalignment='center')
+                # Plot theoretical_strategy vertical lines if provided
+                if theoretical_strategy and variable in theoretical_strategy:
+                    for x_val in theoretical_strategy[variable]:
+                        plt.axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
 
-            # Customize combined plot
+                # Plot business_strategy vertical lines if provided
+                if business_strategy and variable in business_strategy:
+                    for x_val in business_strategy[variable]:
+                        plt.axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
+
+                if plot_derivatives or local_minima:
+                    y_first_derivative = self.first_derivative(x_values, coefficients)
+                    y_second_derivative = self.second_derivative(x_values, coefficients)
+
+                    if plot_derivatives:
+                        plt.plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+                        plt.plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
+
+                    if local_minima:
+                        first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
+                        second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
+
+                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+
+                        # Plot local minima
+                        plt.scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+                        plt.scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
+
+                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+
             plt.title(f'{model.upper()} Regression Curves')
             plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
             plt.ylabel(f'Predicted {target_var}')
             plt.grid(True)
-            plt.legend(loc='upper left', fontsize=9)  # Adjust legend for clarity
+            plt.legend(loc='upper left', fontsize=9)
             plt.tight_layout()
             plt.show()
 
         else:
-            # Calculate number of plots and dynamic layout for individual plots
             n_plots = len(predictor_vars)
-            nrows = math.ceil(n_plots / ncols)  # Dynamically determine the number of rows
-
-            # Create subplots with dynamic layout
+            nrows = math.ceil(n_plots / ncols)
             fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 6 * nrows))
-            axes = axes.flatten()  # Flatten the axes array for easy iteration
+            axes = axes.flatten()
 
             for i, variable in enumerate(predictor_vars):
-                # Generate a sequence of values over the range of the selected variable
                 x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
-
-                # Create a DataFrame for prediction, setting other variables to their mean dynamically
                 predict_data = pd.DataFrame({
                     var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
                 })
-
-                # Ensure that only the specific variable changes
                 predict_data[variable] = x_values
-
-                # Predict the target variable using the chosen model
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                # Plot the OLS or Logit regression curve in the subplot
-                axes[i].plot(x_values, predict_data['predicted_values'], color='green')
+                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'Variable')
+
+                # Plot theoretical_strategy vertical lines if provided
+                if theoretical_strategy and variable in theoretical_strategy:
+                    for x_val in theoretical_strategy[variable]:
+                        axes[i].axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
+
+                # Plot business_strategy vertical lines if provided
+                if business_strategy and variable in business_strategy:
+                    for x_val in business_strategy[variable]:
+                        axes[i].axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
+
+                if plot_derivatives or local_minima:
+                    y_first_derivative = self.first_derivative(x_values, coefficients)
+                    y_second_derivative = self.second_derivative(x_values, coefficients)
+
+                    if plot_derivatives:
+                        axes[i].plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+                        axes[i].plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
+
+                    if local_minima:
+                        first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
+                        second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
+
+                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+
+                        # Plot local minima
+                        axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+                        axes[i].scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
+
                 axes[i].set_title(f'{model.upper()} Regression Curve for {variable}')
                 axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
                 axes[i].set_ylabel(f'Predicted {target_var}')
                 axes[i].grid(True)
+                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
 
-                # Add data label to the end of each line
-                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
-                             fontsize=9, verticalalignment='center')
-
-            # Remove any extra empty subplots if they exist
+            # Hide any extra axes
             for j in range(i + 1, len(axes)):
                 fig.delaxes(axes[j])
 
+            handles, labels = axes[i].get_legend_handles_labels()
+            fig.legend(handles, labels, loc='upper right', fontsize=9)
             plt.tight_layout()
             plt.show()
+
+        return minima_coordinates
+    
+    # def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False):
+    #     """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
+        
+    #     # Optionally standardize the variables
+    #     if standardize:
+    #         scaler = StandardScaler()
+    #         self.df[predictor_vars] = scaler.fit_transform(self.df[predictor_vars])
+
+    #     # Fit the chosen model: OLS or Logit
+    #     formula = f'{target_var} ~ ' + ' + '.join(predictor_vars)
+    #     if model == 'ols':
+    #         model_fit = self.ols(formula)
+    #     elif model == 'logit':
+    #         model_fit = self.logit(formula)
+    #     else:
+    #         raise ValueError("Model must be 'ols' or 'logit'.")
+
+    #     if combine_plots == 1:
+    #         # Combine all plots into a single plot
+    #         plt.figure(figsize=(10, 6))
+    #         for variable in predictor_vars:
+    #             # Generate a sequence of values over the range of the selected variable
+    #             x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
+
+    #             # Create a DataFrame for prediction, setting other variables to their mean dynamically
+    #             predict_data = pd.DataFrame({
+    #                 var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
+    #             })
+
+    #             # Ensure that only the specific variable changes
+    #             predict_data[variable] = x_values
+
+    #             # Predict the target variable using the chosen model
+    #             predict_data['predicted_values'] = model_fit.predict(predict_data)
+
+    #             # Plot the regression/logit curve on the same plot
+    #             plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}')
+
+    #             # Add data label to the end of each line
+    #             plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
+    #                      fontsize=9, verticalalignment='center')
+
+    #         # Customize combined plot
+    #         plt.title(f'{model.upper()} Regression Curves')
+    #         plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
+    #         plt.ylabel(f'Predicted {target_var}')
+    #         plt.grid(True)
+    #         plt.legend(loc='upper left', fontsize=9)  # Adjust legend for clarity
+    #         plt.tight_layout()
+    #         plt.show()
+
+    #     else:
+    #         # Calculate number of plots and dynamic layout for individual plots
+    #         n_plots = len(predictor_vars)
+    #         nrows = math.ceil(n_plots / ncols)  # Dynamically determine the number of rows
+
+    #         # Create subplots with dynamic layout
+    #         fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 6 * nrows))
+    #         axes = axes.flatten()  # Flatten the axes array for easy iteration
+
+    #         for i, variable in enumerate(predictor_vars):
+    #             # Generate a sequence of values over the range of the selected variable
+    #             x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
+
+    #             # Create a DataFrame for prediction, setting other variables to their mean dynamically
+    #             predict_data = pd.DataFrame({
+    #                 var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
+    #             })
+
+    #             # Ensure that only the specific variable changes
+    #             predict_data[variable] = x_values
+
+    #             # Predict the target variable using the chosen model
+    #             predict_data['predicted_values'] = model_fit.predict(predict_data)
+
+    #             # Plot the OLS or Logit regression curve in the subplot
+    #             axes[i].plot(x_values, predict_data['predicted_values'], color='green')
+    #             axes[i].set_title(f'{model.upper()} Regression Curve for {variable}')
+    #             axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
+    #             axes[i].set_ylabel(f'Predicted {target_var}')
+    #             axes[i].grid(True)
+
+    #             # Add data label to the end of each line
+    #             axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
+    #                          fontsize=9, verticalalignment='center')
+
+    #         # Remove any extra empty subplots if they exist
+    #         for j in range(i + 1, len(axes)):
+    #             fig.delaxes(axes[j])
+
+    #         plt.tight_layout()
+    #         plt.show()
