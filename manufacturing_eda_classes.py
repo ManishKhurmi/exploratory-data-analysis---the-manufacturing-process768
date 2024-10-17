@@ -618,7 +618,7 @@ class Models:
         if model_summary == 1:
             print(logit_model.summary2())
         return logit_model
-
+    
     def first_derivative(self, x, coefficients):
         """Calculate the first derivative of the logistic regression curve."""
         # This assumes the logistic function f(x) = 1 / (1 + exp(- (b0 + b1 * x)))
@@ -643,12 +643,20 @@ class Models:
     def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
                         ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
                         theoretical_strategy=None, business_strategy=None):
-        """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
+        """
+        Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot.
+        Optionally standardizes the variables and returns the minima coordinates for first and second derivatives.
+        """
         
+        # Dictionary to store the scaler for each predictor variable if standardization is applied
+        self.scalers = {}
+
         # Optionally standardize the variables
         if standardize:
-            scaler = StandardScaler()
-            self.df[predictor_vars] = scaler.fit_transform(self.df[predictor_vars])
+            for var in predictor_vars:
+                scaler = StandardScaler()
+                self.df[[var]] = scaler.fit_transform(self.df[[var]])
+                self.scalers[var] = scaler  # Store scaler for descaling later
 
         # Fit the chosen model: OLS or Logit
         formula = f'{target_var} ~ ' + ' + '.join(predictor_vars)
@@ -662,33 +670,33 @@ class Models:
         # Get the coefficients for the model (used for derivatives)
         coefficients = model_fit.params
 
-        minima_coordinates = {}
+        # Initialize minima coordinates dictionary
+        minima_coordinates = {var: {'first_derivative_min': None, 'second_derivative_min': None} for var in predictor_vars}
 
+        # If combining all plots into a single plot
         if combine_plots == 1:
-            # Combine all plots into a single plot
             plt.figure(figsize=(10, 6))
             for variable in predictor_vars:
                 x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
 
-                # Create a DataFrame for prediction, setting other variables to their mean dynamically
+                # Create a DataFrame for prediction, setting other variables to their mean
                 predict_data = pd.DataFrame({
                     var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
                 })
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                plt.plot(x_values, predict_data['predicted_values'], label=f'Variable', color='blue')
+                plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}', color='blue')
 
-                # Plot theoretical_strategy vertical lines if provided
+                # Plot theoretical and business strategies if provided
                 if theoretical_strategy and variable in theoretical_strategy:
                     for x_val in theoretical_strategy[variable]:
                         plt.axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
-
-                # Plot business_strategy vertical lines if provided
                 if business_strategy and variable in business_strategy:
                     for x_val in business_strategy[variable]:
                         plt.axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
+                # Compute derivatives and minima if requested
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
@@ -701,14 +709,14 @@ class Models:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
-                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+                        minima_coordinates[variable]['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates[variable]['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
                         plt.scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
                         plt.scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
 
-                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
 
             plt.title(f'{model.upper()} Regression Curves')
             plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
@@ -718,6 +726,7 @@ class Models:
             plt.tight_layout()
             plt.show()
 
+        # Handle separate plots for each variable
         else:
             n_plots = len(predictor_vars)
             nrows = math.ceil(n_plots / ncols)
@@ -732,18 +741,17 @@ class Models:
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'Variable')
+                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'{variable}')
 
-                # Plot theoretical_strategy vertical lines if provided
+                # Plot theoretical and business strategies if provided
                 if theoretical_strategy and variable in theoretical_strategy:
                     for x_val in theoretical_strategy[variable]:
                         axes[i].axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
-
-                # Plot business_strategy vertical lines if provided
                 if business_strategy and variable in business_strategy:
                     for x_val in business_strategy[variable]:
                         axes[i].axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
+                # Compute derivatives and minima if requested
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
@@ -756,8 +764,8 @@ class Models:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
-                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+                        minima_coordinates[variable]['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates[variable]['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
                         axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
@@ -767,7 +775,7 @@ class Models:
                 axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
                 axes[i].set_ylabel(f'Predicted {target_var}')
                 axes[i].grid(True)
-                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
 
             # Hide any extra axes
             for j in range(i + 1, len(axes)):
@@ -780,37 +788,179 @@ class Models:
 
         return minima_coordinates
 
-    def unscale_minima_coordinates(self, minima_coordinates):
-        """Convert the scaled minima points into unscaled values using the inverse transform of the StandardScaler."""
-        unscaled_minima = {}
+    def inverse_scale_minima(self, minima_coordinates):
+        """
+        Inverse the scaling applied to the minima coordinates using the data from self.df and the scalers saved in plot_model_curves.
 
-        # Iterate over the predictor variables in minima_coordinates
-        for variable in minima_coordinates:
-            unscaled_minima[variable] = {}
+        Parameters:
+        minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
 
-            # Fit the scaler individually for each predictor variable
-            scaler = StandardScaler()
-            scaled_variable = self.df[[variable]]  # Get the variable as a DataFrame (2D array)
-            scaler.fit(scaled_variable)  # Fit the scaler on this single variable
+        Returns:
+        dict: Dictionary with the minima coordinates inversely scaled.
+        """
+        # Extract predictor variables from the keys of minima_coordinates
+        predictor_vars = list(minima_coordinates.keys())
 
-            for derivative, (scaled_x, scaled_y) in minima_coordinates[variable].items():
-                # If scaled_x is None (no minimum found), leave it as None
-                if scaled_x is None:
-                    unscaled_x = None
-                else:
-                    # Inverse transform the scaled x-value for the current variable
-                    scaled_array = np.array(scaled_x).reshape(-1, 1)  # Reshape to 2D as required by the scaler
-                    unscaled_x = scaler.inverse_transform(scaled_array)[0, 0]  # Inverse transform and extract the value
+        # Loop through each predictor variable and inverse scale its minima using the stored scalers
+        for var in predictor_vars:
+            if var not in self.scalers:
+                raise ValueError(f"No scaler found for variable '{var}'.")
 
-                # Since y-values (predicted values) are usually not standardized, we can keep scaled_y as is
-                unscaled_y = scaled_y  # Assuming y-values were not scaled
+            scaler = self.scalers[var]  # Retrieve the saved scaler for this variable
 
-                # Store the unscaled values in the dictionary
-                unscaled_minima[variable][derivative] = (unscaled_x, unscaled_y)
+            # Inverse transform the minima only if they are not None
+            first_min = minima_coordinates[var]['first_derivative_min'][0]
+            second_min = minima_coordinates[var]['second_derivative_min'][0]
 
-        return unscaled_minima
-    
-    # def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False):
+            # Inverse scale if the minima are not None
+            if first_min is not None:
+                first_min_unscaled = scaler.inverse_transform([[first_min]])[0][0]
+                minima_coordinates[var]['first_derivative_min'] = (first_min_unscaled, minima_coordinates[var]['first_derivative_min'][1])
+            if second_min is not None:
+                second_min_unscaled = scaler.inverse_transform([[second_min]])[0][0]
+                minima_coordinates[var]['second_derivative_min'] = (second_min_unscaled, minima_coordinates[var]['second_derivative_min'][1])
+
+        return minima_coordinates
+
+    def extract_x_value_of_second_derivative(self, minima_coordinates):
+        """
+        Returns a dictionary of variables and x-values by extracting the x-value of the second derivative minima,
+        rounded to the nearest integer.
+        
+        Parameters:
+        minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
+
+        Returns:
+        dict: Dictionary where keys are variable names and values are the rounded x-values of the second derivative.
+        """
+        strategy_dict = {}
+
+        # Loop through each variable in the minima_coordinates dictionary
+        for var, coords in minima_coordinates.items():
+            second_derivative_min_x = coords['second_derivative_min'][0]  # Get the x-value of the second derivative
+
+            # Round the x-value to the nearest integer
+            if second_derivative_min_x is not None:
+                strategy_dict[var] = [round(second_derivative_min_x)]
+        
+        return strategy_dict
+
+    # Helper function to calculate failure rate after applying a list of filters in a specific order
+    def apply_thresholds_in_order(self, strategy_dict, filter_order):
+        filtered_df = self.df.copy()
+
+        for variable in filter_order:
+            threshold = strategy_dict[variable][0]  # Assuming the first element is the threshold
+            filtered_df = filtered_df[filtered_df[variable] < threshold]
+
+        filtered_failure_count = filtered_df['machine_failure'].sum()
+        filtered_data_points = len(filtered_df)
+        if filtered_data_points == 0:
+            return None, None  # Avoid division by zero
+
+        filtered_failure_rate = (filtered_failure_count / filtered_data_points) * 100
+        return filtered_df, filtered_failure_rate
+
+    def impact_of_strategy(self, strategy_dict):
+        ''' 
+        Finds the best order of filters to minimize the failure rate. 
+        Returns the best order, the failure rate after applying the filters, 
+        and other metrics like production loss.
+        '''
+        # Extract original metrics
+        total_data_points = len(self.df)
+        original_failure_count = self.df['machine_failure'].sum()
+        original_failure_rate = (original_failure_count / total_data_points) * 100
+        print(f'Original Failure Rate: {original_failure_rate}')
+        print(f'Total Data Points: {total_data_points}')
+        
+        # Generate all possible orders of filtering
+        variables_with_thresholds = [var for var, threshold in strategy_dict.items() if threshold]
+        possible_orders = list(permutations(variables_with_thresholds))
+        
+        # Track the best order and the lowest failure rate
+        best_order = None
+        lowest_failure_rate = float('inf')
+        best_filtered_df = None
+
+        # Evaluate each order of filtering
+        for order in possible_orders:
+            filtered_df, failure_rate = self.apply_thresholds_in_order(strategy_dict, order)
+            if filtered_df is not None and failure_rate < lowest_failure_rate:
+                lowest_failure_rate = failure_rate
+                best_order = order
+                best_filtered_df = filtered_df
+
+        # Calculate production loss
+        filtered_data_points = len(best_filtered_df) if best_filtered_df is not None else total_data_points
+        production_loss = total_data_points - filtered_data_points
+        relative_improvement_percentage = (original_failure_rate - lowest_failure_rate) / original_failure_rate * 100 if original_failure_rate != 0 else 0
+
+        print(f'Best Order of Applying Filters: {best_order}')
+        print(f'Original Failure Rate')
+        print(f'Lowest Failure Rate After Applying Best Order: {lowest_failure_rate:.2f}%')
+        print(f'Production Loss: {production_loss}')
+        print(f'Improvement Percentage: {relative_improvement_percentage:.2f}%')
+
+        return {
+            'best_order': best_order,
+            'original_failure_rate': f'{original_failure_rate:.2f}%',
+            'lowest_failure_rate': f'{lowest_failure_rate:.2f}%',  # As a percentage
+            'production_loss': production_loss,
+            'relative_improvement_percentage': f'{relative_improvement_percentage:.2f}%'  # As a percentage
+        }
+    @staticmethod
+    def present_results(result_dict):
+        """
+        Presents the model results in a human-readable format.
+        
+        Parameters:
+        result_dict (dict): Dictionary containing the final results of the model.
+        
+        Returns:
+        str: Formatted string presenting the results.
+        """
+        formatted_output = f"""
+        Model Results:
+        ------------------------------
+        Best Order of Applying Filters:
+        - {' -> '.join(result_dict['best_order'])}
+        
+        Original Failure Rate: {result_dict['original_failure_rate']}
+        Lowest Failure Rate After Filtering: {result_dict['lowest_failure_rate']}
+        
+        Production Loss: {result_dict['production_loss']} units
+        Relative Improvement in Failure Rate: {result_dict['relative_improvement_percentage']}
+        """
+        
+        return formatted_output
+
+
+
+    # def first_derivative(self, x, coefficients):
+    #     """Calculate the first derivative of the logistic regression curve."""
+    #     # This assumes the logistic function f(x) = 1 / (1 + exp(- (b0 + b1 * x)))
+    #     return np.exp(-x) / (1 + np.exp(-x))**2
+
+    # def second_derivative(self, x, coefficients):
+    #     """Calculate the second derivative of the logistic regression curve."""
+    #     # Second derivative for logistic regression
+    #     return -np.exp(-x) * (1 - np.exp(-x)) / (1 + np.exp(-x))**3
+
+    # def find_local_minima(self, x_values, y_values):
+    #     """Helper function to find local minima in a given set of x and y values."""
+    #     local_min_x = None
+    #     local_min_y = None
+    #     for i in range(1, len(y_values) - 1):
+    #         if y_values[i - 1] > y_values[i] < y_values[i + 1]:
+    #             local_min_x = x_values[i]
+    #             local_min_y = y_values[i]
+    #             break  # Return the first local minimum found
+    #     return local_min_x, local_min_y
+
+    # def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
+    #                     ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
+    #                     theoretical_strategy=None, business_strategy=None):
     #     """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
         
     #     # Optionally standardize the variables
@@ -827,78 +977,154 @@ class Models:
     #     else:
     #         raise ValueError("Model must be 'ols' or 'logit'.")
 
+    #     # Get the coefficients for the model (used for derivatives)
+    #     coefficients = model_fit.params
+
+    #     minima_coordinates = {}
+
     #     if combine_plots == 1:
     #         # Combine all plots into a single plot
     #         plt.figure(figsize=(10, 6))
     #         for variable in predictor_vars:
-    #             # Generate a sequence of values over the range of the selected variable
     #             x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
 
     #             # Create a DataFrame for prediction, setting other variables to their mean dynamically
     #             predict_data = pd.DataFrame({
     #                 var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
     #             })
-
-    #             # Ensure that only the specific variable changes
     #             predict_data[variable] = x_values
-
-    #             # Predict the target variable using the chosen model
     #             predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-    #             # Plot the regression/logit curve on the same plot
-    #             plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}')
+    #             plt.plot(x_values, predict_data['predicted_values'], label=f'Variable', color='blue')
 
-    #             # Add data label to the end of each line
-    #             plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
-    #                      fontsize=9, verticalalignment='center')
+    #             # Plot theoretical_strategy vertical lines if provided
+    #             if theoretical_strategy and variable in theoretical_strategy:
+    #                 for x_val in theoretical_strategy[variable]:
+    #                     plt.axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
 
-    #         # Customize combined plot
+    #             # Plot business_strategy vertical lines if provided
+    #             if business_strategy and variable in business_strategy:
+    #                 for x_val in business_strategy[variable]:
+    #                     plt.axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
+
+    #             if plot_derivatives or local_minima:
+    #                 y_first_derivative = self.first_derivative(x_values, coefficients)
+    #                 y_second_derivative = self.second_derivative(x_values, coefficients)
+
+    #                 if plot_derivatives:
+    #                     plt.plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+    #                     plt.plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
+
+    #                 if local_minima:
+    #                     first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
+    #                     second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
+
+    #                     minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+    #                     minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+
+    #                     # Plot local minima
+    #                     plt.scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+    #                     plt.scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
+
+    #             plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+
     #         plt.title(f'{model.upper()} Regression Curves')
     #         plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
     #         plt.ylabel(f'Predicted {target_var}')
     #         plt.grid(True)
-    #         plt.legend(loc='upper left', fontsize=9)  # Adjust legend for clarity
+    #         plt.legend(loc='upper left', fontsize=9)
     #         plt.tight_layout()
     #         plt.show()
 
     #     else:
-    #         # Calculate number of plots and dynamic layout for individual plots
     #         n_plots = len(predictor_vars)
-    #         nrows = math.ceil(n_plots / ncols)  # Dynamically determine the number of rows
-
-    #         # Create subplots with dynamic layout
+    #         nrows = math.ceil(n_plots / ncols)
     #         fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 6 * nrows))
-    #         axes = axes.flatten()  # Flatten the axes array for easy iteration
+    #         axes = axes.flatten()
 
     #         for i, variable in enumerate(predictor_vars):
-    #             # Generate a sequence of values over the range of the selected variable
     #             x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
-
-    #             # Create a DataFrame for prediction, setting other variables to their mean dynamically
     #             predict_data = pd.DataFrame({
     #                 var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
     #             })
-
-    #             # Ensure that only the specific variable changes
     #             predict_data[variable] = x_values
-
-    #             # Predict the target variable using the chosen model
     #             predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-    #             # Plot the OLS or Logit regression curve in the subplot
-    #             axes[i].plot(x_values, predict_data['predicted_values'], color='green')
+    #             axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'Variable')
+
+    #             # Plot theoretical_strategy vertical lines if provided
+    #             if theoretical_strategy and variable in theoretical_strategy:
+    #                 for x_val in theoretical_strategy[variable]:
+    #                     axes[i].axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
+
+    #             # Plot business_strategy vertical lines if provided
+    #             if business_strategy and variable in business_strategy:
+    #                 for x_val in business_strategy[variable]:
+    #                     axes[i].axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
+
+    #             if plot_derivatives or local_minima:
+    #                 y_first_derivative = self.first_derivative(x_values, coefficients)
+    #                 y_second_derivative = self.second_derivative(x_values, coefficients)
+
+    #                 if plot_derivatives:
+    #                     axes[i].plot(x_values, y_first_derivative, label=f'First Derivative', linestyle='--', color='green')
+    #                     axes[i].plot(x_values, y_second_derivative, label=f'Second Derivative', linestyle=':', color='red')
+
+    #                 if local_minima:
+    #                     first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
+    #                     second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
+
+    #                     minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
+    #                     minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+
+    #                     # Plot local minima
+    #                     axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
+    #                     axes[i].scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
+
     #             axes[i].set_title(f'{model.upper()} Regression Curve for {variable}')
     #             axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
     #             axes[i].set_ylabel(f'Predicted {target_var}')
     #             axes[i].grid(True)
+    #             axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
 
-    #             # Add data label to the end of each line
-    #             axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', 
-    #                          fontsize=9, verticalalignment='center')
-
-    #         # Remove any extra empty subplots if they exist
+    #         # Hide any extra axes
     #         for j in range(i + 1, len(axes)):
     #             fig.delaxes(axes[j])
 
+    #         handles, labels = axes[i].get_legend_handles_labels()
+    #         fig.legend(handles, labels, loc='upper right', fontsize=9)
     #         plt.tight_layout()
     #         plt.show()
+
+    #     return minima_coordinates
+
+    # def unscale_minima_coordinates(self, minima_coordinates):
+    #     """Convert the scaled minima points into unscaled values using the inverse transform of the StandardScaler."""
+    #     unscaled_minima = {}
+
+    #     # Iterate over the predictor variables in minima_coordinates
+    #     for variable in minima_coordinates:
+    #         unscaled_minima[variable] = {}
+
+    #         # Fit the scaler individually for each predictor variable
+    #         scaler = StandardScaler()
+    #         scaled_variable = self.df[[variable]]  # Get the variable as a DataFrame (2D array)
+    #         scaler.fit(scaled_variable)  # Fit the scaler on this single variable
+
+    #         for derivative, (scaled_x, scaled_y) in minima_coordinates[variable].items():
+    #             # If scaled_x is None (no minimum found), leave it as None
+    #             if scaled_x is None:
+    #                 unscaled_x = None
+    #             else:
+    #                 # Inverse transform the scaled x-value for the current variable
+    #                 scaled_array = np.array(scaled_x).reshape(-1, 1)  # Reshape to 2D as required by the scaler
+    #                 unscaled_x = scaler.inverse_transform(scaled_array)[0, 0]  # Inverse transform and extract the value
+
+    #             # Since y-values (predicted values) are usually not standardized, we can keep scaled_y as is
+    #             unscaled_y = scaled_y  # Assuming y-values were not scaled
+
+    #             # Store the unscaled values in the dictionary
+    #             unscaled_minima[variable][derivative] = (unscaled_x, unscaled_y)
+
+    #     return unscaled_minima
+    
