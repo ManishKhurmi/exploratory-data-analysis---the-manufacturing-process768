@@ -104,12 +104,20 @@ class Models:
     def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
                         ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
                         theoretical_strategy=None, business_strategy=None):
-        """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
+        """
+        Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot.
+        Optionally standardizes the variables and returns the minima coordinates for first and second derivatives.
+        """
         
+        # Dictionary to store the scaler for each predictor variable if standardization is applied
+        self.scalers = {}
+
         # Optionally standardize the variables
         if standardize:
-            scaler = StandardScaler()
-            self.df[predictor_vars] = scaler.fit_transform(self.df[predictor_vars])
+            for var in predictor_vars:
+                scaler = StandardScaler()
+                self.df[[var]] = scaler.fit_transform(self.df[[var]])
+                self.scalers[var] = scaler  # Store scaler for descaling later
 
         # Fit the chosen model: OLS or Logit
         formula = f'{target_var} ~ ' + ' + '.join(predictor_vars)
@@ -123,33 +131,33 @@ class Models:
         # Get the coefficients for the model (used for derivatives)
         coefficients = model_fit.params
 
-        minima_coordinates = {}
+        # Initialize minima coordinates dictionary
+        minima_coordinates = {var: {'first_derivative_min': None, 'second_derivative_min': None} for var in predictor_vars}
 
+        # If combining all plots into a single plot
         if combine_plots == 1:
-            # Combine all plots into a single plot
             plt.figure(figsize=(10, 6))
             for variable in predictor_vars:
                 x_values = np.linspace(self.df[variable].min(), self.df[variable].max(), 100)
 
-                # Create a DataFrame for prediction, setting other variables to their mean dynamically
+                # Create a DataFrame for prediction, setting other variables to their mean
                 predict_data = pd.DataFrame({
                     var: [self.df[var].mean()] * len(x_values) for var in predictor_vars
                 })
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                plt.plot(x_values, predict_data['predicted_values'], label=f'Variable', color='blue')
+                plt.plot(x_values, predict_data['predicted_values'], label=f'{variable}', color='blue')
 
-                # Plot theoretical_strategy vertical lines if provided
+                # Plot theoretical and business strategies if provided
                 if theoretical_strategy and variable in theoretical_strategy:
                     for x_val in theoretical_strategy[variable]:
                         plt.axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
-
-                # Plot business_strategy vertical lines if provided
                 if business_strategy and variable in business_strategy:
                     for x_val in business_strategy[variable]:
                         plt.axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
+                # Compute derivatives and minima if requested
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
@@ -162,14 +170,14 @@ class Models:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
-                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+                        minima_coordinates[variable]['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates[variable]['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
                         plt.scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
                         plt.scatter(second_min_x, second_min_y, color='purple', label=f'Second Derivative Min')
 
-                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+                plt.text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
 
             plt.title(f'{model.upper()} Regression Curves')
             plt.xlabel('Standardized Predictor Variables' if standardize else 'Predictor Variables')
@@ -179,6 +187,7 @@ class Models:
             plt.tight_layout()
             plt.show()
 
+        # Handle separate plots for each variable
         else:
             n_plots = len(predictor_vars)
             nrows = math.ceil(n_plots / ncols)
@@ -193,18 +202,17 @@ class Models:
                 predict_data[variable] = x_values
                 predict_data['predicted_values'] = model_fit.predict(predict_data)
 
-                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'Variable')
+                axes[i].plot(x_values, predict_data['predicted_values'], color='blue', label=f'{variable}')
 
-                # Plot theoretical_strategy vertical lines if provided
+                # Plot theoretical and business strategies if provided
                 if theoretical_strategy and variable in theoretical_strategy:
                     for x_val in theoretical_strategy[variable]:
                         axes[i].axvline(x=x_val, color='blue', linestyle='--', label=f'Theoretical Strategy')
-
-                # Plot business_strategy vertical lines if provided
                 if business_strategy and variable in business_strategy:
                     for x_val in business_strategy[variable]:
                         axes[i].axvline(x=x_val, color='orange', linestyle='--', label=f'Business Strategy')
 
+                # Compute derivatives and minima if requested
                 if plot_derivatives or local_minima:
                     y_first_derivative = self.first_derivative(x_values, coefficients)
                     y_second_derivative = self.second_derivative(x_values, coefficients)
@@ -217,8 +225,8 @@ class Models:
                         first_min_x, first_min_y = self.find_local_minima(x_values, y_first_derivative)
                         second_min_x, second_min_y = self.find_local_minima(x_values, y_second_derivative)
 
-                        minima_coordinates['first_derivative_min'] = (first_min_x, first_min_y)
-                        minima_coordinates['second_derivative_min'] = (second_min_x, second_min_y)
+                        minima_coordinates[variable]['first_derivative_min'] = (first_min_x, first_min_y)
+                        minima_coordinates[variable]['second_derivative_min'] = (second_min_x, second_min_y)
 
                         # Plot local minima
                         axes[i].scatter(first_min_x, first_min_y, color='orange', label=f'First Derivative Min')
@@ -228,7 +236,7 @@ class Models:
                 axes[i].set_xlabel('Standardized ' + variable if standardize else variable)
                 axes[i].set_ylabel(f'Predicted {target_var}')
                 axes[i].grid(True)
-                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'Variable', fontsize=9, verticalalignment='center')
+                axes[i].text(x_values[-1], predict_data['predicted_values'].iloc[-1], f'{variable}', fontsize=9, verticalalignment='center')
 
             # Hide any extra axes
             for j in range(i + 1, len(axes)):
@@ -241,35 +249,41 @@ class Models:
 
         return minima_coordinates
 
-    def unscale_minima_coordinates(self, minima_coordinates):
-        """Convert the scaled minima points into unscaled values using the inverse transform of the StandardScaler."""
-        unscaled_minima = {}
+    def inverse_scale_minima(self, minima_coordinates):
+        """
+        Inverse the scaling applied to the minima coordinates using the data from self.df and the scalers saved in plot_model_curves.
 
-        # Iterate over the predictor variables in minima_coordinates
-        for variable in minima_coordinates:
-            unscaled_minima[variable] = {}
+        Parameters:
+        minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
 
-            # Fit the scaler individually for each predictor variable
-            scaler = StandardScaler()
-            scaled_variable = self.df[[variable]]  # Get the variable as a DataFrame (2D array)
-            scaler.fit(scaled_variable)  # Fit the scaler on this single variable
+        Returns:
+        dict: Dictionary with the minima coordinates inversely scaled.
+        """
+        # Extract predictor variables from the keys of minima_coordinates
+        predictor_vars = list(minima_coordinates.keys())
 
-            for derivative, (scaled_x, scaled_y) in minima_coordinates[variable].items():
-                # If scaled_x is None (no minimum found), leave it as None
-                if scaled_x is None:
-                    unscaled_x = None
-                else:
-                    # Inverse transform the scaled x-value for the current variable
-                    scaled_array = np.array(scaled_x).reshape(-1, 1)  # Reshape to 2D as required by the scaler
-                    unscaled_x = scaler.inverse_transform(scaled_array)[0, 0]  # Inverse transform and extract the value
+        # Loop through each predictor variable and inverse scale its minima using the stored scalers
+        for var in predictor_vars:
+            if var not in self.scalers:
+                raise ValueError(f"No scaler found for variable '{var}'.")
 
-                # Since y-values (predicted values) are usually not standardized, we can keep scaled_y as is
-                unscaled_y = scaled_y  # Assuming y-values were not scaled
+            scaler = self.scalers[var]  # Retrieve the saved scaler for this variable
 
-                # Store the unscaled values in the dictionary
-                unscaled_minima[variable][derivative] = (unscaled_x, unscaled_y)
+            # Inverse transform the minima only if they are not None
+            first_min = minima_coordinates[var]['first_derivative_min'][0]
+            second_min = minima_coordinates[var]['second_derivative_min'][0]
 
-        return unscaled_minima
+            # Inverse scale if the minima are not None
+            if first_min is not None:
+                first_min_unscaled = scaler.inverse_transform([[first_min]])[0][0]
+                minima_coordinates[var]['first_derivative_min'] = (first_min_unscaled, minima_coordinates[var]['first_derivative_min'][1])
+            if second_min is not None:
+                second_min_unscaled = scaler.inverse_transform([[second_min]])[0][0]
+                minima_coordinates[var]['second_derivative_min'] = (second_min_unscaled, minima_coordinates[var]['second_derivative_min'][1])
+
+        return minima_coordinates
+
+
 
 dt = DataTransform(failure_data_df)
 machine_failure_col_mapping = {
@@ -292,8 +306,11 @@ model = Models(failure_data_df)
 predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
 
 failure_data_df_copy = failure_data_df.copy()
-# # Plot of Actuals with Derivatives - Shows that the fist and second derivative don't tell us much as the values are not interpretable with Actuals & logistic regression.
-model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
+# minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
+# print(minima_coords)
+
+# # # Plot of Actuals with Derivatives - Shows that the fist and second derivative don't tell us much as the values are not interpretable with Actuals & logistic regression.
+# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
 
 # # Plot of Standardised Vars with first and second derivatives 
 model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
@@ -316,17 +333,70 @@ business_strategy = {
     'tool_wear': [200]
 }
 # Final Strategy
-minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=True, theoretical_strategy=theoretical_strategy, 
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=True, theoretical_strategy=theoretical_strategy, 
                                         business_strategy=business_strategy)
 
 
-model.unscale_minima_coordinates((minima_coordinates=minima_coords)
 
-# expected = {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (49.71993233139408, -0.09621497698616391)}, 
-#  'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1750.9393939393938, -0.09622486847047655)}, 
-#  'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
-#  'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
-#  'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
+# model = Models(failure_data_df_copy)
+
+minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
+print(minima_coords)
+print('\n')
+print(type(minima_coords))
+
+result_dict = model.inverse_scale_minima(minima_coords)
+print(result_dict)
+
+
+# minima_coords = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.302532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
+
+# model = Models(failure_data_df)
+# Assuming df is your dataframe and contains the predictor variables
+# result_dict = model.inverse_scale_minima(minima_coords)
+# print(result_dict)
+
+
+# test_minima_coordinates = {
+#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
+#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
+#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
+#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
+#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
+# }
+
+# print('Result:\n')
+# result_dict = model.inverse_scale_minima(minima_coords)
+# print(result_dict)
+
+
+
+# descaler = descale(failure_data_df_copy)
+# result = descale.unscale_minima_coordinates(minima_coordinates=minima_coords)
+
+# # result = model.unscale_minima_coordinates(minima_coordinates=minima_coords)
+# print(result)
+
+
+
+# Assuming you already have the DataFrame 'df' and 'minima_coords' to work with
+
+
+# Call the 'unscale_minima_coordinates' method on the instance, passing the minima_coordinates
+
+
+
+expected = {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (49.71993233139408, -0.09621497698616391)}, 
+ 'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1750.9393939393938, -0.09622486847047655)}, 
+ 'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
+ 'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
+ 'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
 
 
 # Models & Minima 

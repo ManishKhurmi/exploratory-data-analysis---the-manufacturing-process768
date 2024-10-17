@@ -779,6 +779,36 @@ class Models:
             plt.show()
 
         return minima_coordinates
+
+    def unscale_minima_coordinates(self, minima_coordinates):
+        """Convert the scaled minima points into unscaled values using the inverse transform of the StandardScaler."""
+        unscaled_minima = {}
+
+        # Iterate over the predictor variables in minima_coordinates
+        for variable in minima_coordinates:
+            unscaled_minima[variable] = {}
+
+            # Fit the scaler individually for each predictor variable
+            scaler = StandardScaler()
+            scaled_variable = self.df[[variable]]  # Get the variable as a DataFrame (2D array)
+            scaler.fit(scaled_variable)  # Fit the scaler on this single variable
+
+            for derivative, (scaled_x, scaled_y) in minima_coordinates[variable].items():
+                # If scaled_x is None (no minimum found), leave it as None
+                if scaled_x is None:
+                    unscaled_x = None
+                else:
+                    # Inverse transform the scaled x-value for the current variable
+                    scaled_array = np.array(scaled_x).reshape(-1, 1)  # Reshape to 2D as required by the scaler
+                    unscaled_x = scaler.inverse_transform(scaled_array)[0, 0]  # Inverse transform and extract the value
+
+                # Since y-values (predicted values) are usually not standardized, we can keep scaled_y as is
+                unscaled_y = scaled_y  # Assuming y-values were not scaled
+
+                # Store the unscaled values in the dictionary
+                unscaled_minima[variable][derivative] = (unscaled_x, unscaled_y)
+
+        return unscaled_minima
     
     # def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, ncols=3, standardize=False):
     #     """Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot."""
