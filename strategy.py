@@ -105,7 +105,7 @@ business_strategy = {
     'rotational_speed_actual': [1900],
     'air_temperature': [304],  
     'process_temperature': [312],  
-    'tool_wear': [200]
+    'tool_wear': [240]
 }
 
 # 4) Plot of Theoretical and Business Strategy on Actuals
@@ -120,6 +120,9 @@ result_theoretical_strategy = model.present_results(result_dict=dict_impact_of_t
 dict_impact_of_business_strategy = model.impact_of_strategy(business_strategy)
 result_business_approach = model.present_results(result_dict=dict_impact_of_business_strategy)
 
-
+print('\n')
 print(f'Results of Theoretical Strategy: \n {result_theoretical_strategy}')
-print(f'Results of Business Strategy" \n {result_business_approach}')
+print(f'Results of Business Strategy \n {result_business_approach}')
+
+# Suggestions to the Business: Focus on 'Tool Wear' 
+
