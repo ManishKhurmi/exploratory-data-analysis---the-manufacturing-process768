@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
 from sklearn.preprocessing import StandardScaler
 import math
+from itertools import permutations
 
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform
 
@@ -283,7 +284,92 @@ class Models:
 
         return minima_coordinates
 
+    def extract_x_value_of_second_derivative(self, minima_coordinates):
+        """
+        Returns a dictionary of variables and x-values by extracting the x-value of the second derivative minima,
+        rounded to the nearest integer.
+        
+        Parameters:
+        minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
 
+        Returns:
+        dict: Dictionary where keys are variable names and values are the rounded x-values of the second derivative.
+        """
+        strategy_dict = {}
+
+        # Loop through each variable in the minima_coordinates dictionary
+        for var, coords in minima_coordinates.items():
+            second_derivative_min_x = coords['second_derivative_min'][0]  # Get the x-value of the second derivative
+
+            # Round the x-value to the nearest integer
+            if second_derivative_min_x is not None:
+                strategy_dict[var] = [round(second_derivative_min_x)]
+        
+        return strategy_dict
+
+    # Helper function to calculate failure rate after applying a list of filters in a specific order
+    def apply_thresholds_in_order(self, strategy_dict, filter_order):
+        filtered_df = self.df.copy()
+
+        for variable in filter_order:
+            threshold = strategy_dict[variable][0]  # Assuming the first element is the threshold
+            filtered_df = filtered_df[filtered_df[variable] < threshold]
+
+        filtered_failure_count = filtered_df['machine_failure'].sum()
+        filtered_data_points = len(filtered_df)
+        if filtered_data_points == 0:
+            return None, None  # Avoid division by zero
+
+        filtered_failure_rate = (filtered_failure_count / filtered_data_points) * 100
+        return filtered_df, filtered_failure_rate
+
+    # Main function to find the best order for applying thresholds
+    def impact_of_strategy(self, strategy_dict):
+        ''' 
+        Finds the best order of filters to minimize the failure rate. 
+        Returns the best order, the failure rate after applying the filters, 
+        and other metrics like production loss.
+        '''
+        # Extract original metrics
+        total_data_points = len(self.df)
+        original_failure_count = self.df['machine_failure'].sum()
+        original_failure_rate = (original_failure_count / total_data_points) * 100
+        print(f'Original Failure Rate: {original_failure_rate}')
+        print(f'Total Data Points: {total_data_points}')
+        
+        # Generate all possible orders of filtering
+        variables_with_thresholds = [var for var, threshold in strategy_dict.items() if threshold]
+        possible_orders = list(permutations(variables_with_thresholds))
+        
+        # Track the best order and the lowest failure rate
+        best_order = None
+        lowest_failure_rate = float('inf')
+        best_filtered_df = None
+
+        # Evaluate each order of filtering
+        for order in possible_orders:
+            filtered_df, failure_rate = self.apply_thresholds_in_order(strategy_dict, order)
+            if filtered_df is not None and failure_rate < lowest_failure_rate:
+                lowest_failure_rate = failure_rate
+                best_order = order
+                best_filtered_df = filtered_df
+
+        # Calculate production loss
+        filtered_data_points = len(best_filtered_df) if best_filtered_df is not None else total_data_points
+        production_loss = total_data_points - filtered_data_points
+        improvement_percentage = (original_failure_rate - lowest_failure_rate) / original_failure_rate * 100 if original_failure_rate != 0 else 0
+
+        print(f'Best Order of Applying Filters: {best_order}')
+        print(f'Lowest Failure Rate After Applying Best Order: {lowest_failure_rate:.2f}%')
+        print(f'Production Loss: {production_loss}')
+        print(f'Improvement Percentage: {improvement_percentage:.2f}%')
+
+        return {
+            'best_order': best_order,
+            'lowest_failure_rate': f'{lowest_failure_rate:.2f}%',  # As a percentage
+            'production_loss': production_loss,
+            'improvement_percentage': f'{improvement_percentage:.2f}%'  # As a percentage
+        }
 
 dt = DataTransform(failure_data_df)
 machine_failure_col_mapping = {
@@ -301,30 +387,32 @@ machine_failure_col_mapping = {
 }
 # Setup df & instances 
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
-
 model = Models(failure_data_df)
 predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
 
 failure_data_df_copy = failure_data_df.copy()
-# minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
-# print(minima_coords)
+# 1) Logistic Regression: Model Curves 
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
 
-# # # Plot of Actuals with Derivatives - Shows that the fist and second derivative don't tell us much as the values are not interpretable with Actuals & logistic regression.
-# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
+# 2) Plot of Actuals with Derivatives - Shows that the fist and second derivative don't tell us much as the values are not interpretable with Actuals & logistic regression.
+model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=True, local_minima=True)
 
-# # Plot of Standardised Vars with first and second derivatives 
-model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
+# 3) Standardised Vars with First and second derivative
+dict_minima_coordinates = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
 
-model = Models(failure_data_df_copy)
-predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
-# Dictionary with vertical lines for each predictor variable
-theoretical_strategy = {
-    'torque': [50],
-    'rotational_speed_actual': [1750],
-    'air_temperature': [300],  # Vertical lines at 15 and 25
-    'process_temperature': [310],  # Vertical lines at 70 and 80
-    'tool_wear': [190]
-}
+print(dict_minima_coordinates)
+
+print('Results \n:')
+dict_descaled_minima_coordinates = model.inverse_scale_minima(dict_minima_coordinates)
+print(dict_descaled_minima_coordinates)
+
+
+# Extract the rounded x-values of the second derivatives
+theoretical_strategy = model.extract_x_value_of_second_derivative(dict_descaled_minima_coordinates)
+# We will call this our Theoretical Strategy 
+print(theoretical_strategy)
+
+# Business strategy based on speculation
 business_strategy = {
     'torque': [60],
     'rotational_speed_actual': [1900],
@@ -332,121 +420,18 @@ business_strategy = {
     'process_temperature': [312],  # Vertical lines at 70 and 80
     'tool_wear': [200]
 }
-# Final Strategy
+
+# 4) Plot of Theoretical and Business Strategy on Actuals
+model = Models(failure_data_df_copy)
 model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=True, theoretical_strategy=theoretical_strategy, 
                                         business_strategy=business_strategy)
 
 
+result_theoretical_approach = model.impact_of_strategy(theoretical_strategy)
+print('Results of Theoretiacal Approach:\n')
+print(result_theoretical_approach)
 
-# model = Models(failure_data_df_copy)
-
-minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
-print(minima_coords)
-print('\n')
-print(type(minima_coords))
-
-result_dict = model.inverse_scale_minima(minima_coords)
-print(result_dict)
-
-
-# minima_coords = {
-#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.302532048803255, -0.09621497698616391)},
-#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-# }
-
-# model = Models(failure_data_df)
-# Assuming df is your dataframe and contains the predictor variables
-# result_dict = model.inverse_scale_minima(minima_coords)
-# print(result_dict)
-
-
-# test_minima_coordinates = {
-#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
-#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-# }
-
-# print('Result:\n')
-# result_dict = model.inverse_scale_minima(minima_coords)
-# print(result_dict)
-
-
-
-# descaler = descale(failure_data_df_copy)
-# result = descale.unscale_minima_coordinates(minima_coordinates=minima_coords)
-
-# # result = model.unscale_minima_coordinates(minima_coordinates=minima_coords)
-# print(result)
-
-
-
-# Assuming you already have the DataFrame 'df' and 'minima_coords' to work with
-
-
-# Call the 'unscale_minima_coordinates' method on the instance, passing the minima_coordinates
-
-
-
-expected = {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (49.71993233139408, -0.09621497698616391)}, 
- 'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1750.9393939393938, -0.09622486847047655)}, 
- 'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
- 'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
- 'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
-
-
-# Models & Minima 
-# logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
-# ols = model.ols(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
-# # model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=False )
-# minima_coords = model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=True, plot_derivatives=True, local_minima=True)
-# print('actual minima dict: \n')
-# print(minima_coords)
-
-# # Unscaling:
-# unscaled_dict = model.unscale_minima_coordinates(minima_coords)
-# print('Unscaled Cords:')
-# print(unscaled_dict)
-
-# minima_coords = {
-#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
-#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-# }
-
-######################################################################################################
-# Testing 
-# failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
-# model = Models(failure_data_df)
-# test_minima_coordinates = {
-#     'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (1.02532048803255, -0.09621497698616391)},
-#     'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3150438456951041, -0.09622486847047655)},
-#     'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2994355529261714, -0.09621017351230728)},
-#     'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (1.2896496029825735, -0.0961887904634136)},
-#     'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (1.3044680174931413, -0.09621750346930949)}
-# }
-# unscaled_dict = model.unscale_minima_coordinates(test_minima_coordinates)
-# print('Unscaled Cords:')
-# print(unscaled_dict)
-
-# Corrently unscaled variables 
-# Unscaled Cords:
-# expected = {'torque': {'first_derivative_min': (None, None), 'second_derivative_min': (49.71993233139408, -0.09621497698616391)}, 
-#  'rotational_speed_actual': {'first_derivative_min': (None, None), 'second_derivative_min': (1750.9393939393938, -0.09622486847047655)}, 
-#  'air_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (302.5, -0.09621017351230728)}, 
-#  'process_temperature': {'first_derivative_min': (None, None), 'second_derivative_min': (311.830303030303, -0.0961887904634136)}, 
-#  'tool_wear': {'first_derivative_min': (None, None), 'second_derivative_min': (189.11111111111111, -0.09621750346930949)}}
-
-
-
-######################################################################################################
-
-
-
+result_buiness_approach = model.impact_of_strategy(business_strategy)
+print('Results of Business Approach:\n')
+print(result_buiness_approach)
 
