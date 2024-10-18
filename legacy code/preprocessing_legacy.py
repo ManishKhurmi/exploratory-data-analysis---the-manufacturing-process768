@@ -1,6 +1,7 @@
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform
 
-def preprocess_data():
+if __name__=='__main__':
+
     print('##############################################################################')
     print('Step 0: Load the Data')
     load_data = LoadData('failure_data.csv')  # Instantiate the class with your file name
@@ -53,9 +54,3 @@ def preprocess_data():
     print(f"Shape of the DataFrame: {info.return_shape()}")
     print(f"Percentage of missing values in each column:\n{info.percentage_of_null()}")
     print(f"List of column names in the DataFrame: {info.column_names()}")
-
-    return failure_data_df
-
-if __name__ == '__main__':
-    failure_data_df = preprocess_data()
-    print(failure_data_df.head(2))

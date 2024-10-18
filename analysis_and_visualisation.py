@@ -1,27 +1,29 @@
+# Import custom Classes 
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform, Plotter, Models
+
+# Imports 
 import pandas as pd
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 import seaborn as sns
-# print('#'* 100)
-# load_data = LoadData('failure_data.csv')
-# failure_data_df = load_data.df
-# print(failure_data_df.head(2))
 
-# print('#'* 100)
-# info = DataFrameInfo(failure_data_df)
-# print(info.column_names())
-
-# print('#'* 100)
-# dt = DataTransform(failure_data_df)
-# type_dummy_df = dt.create_dummies_from_column('Type')
-# print(type_dummy_df.head(2))
-
-# print('#'* 100)
-# model = Models(failure_data_df)
-# print(model.chi_squared_test_df(binary_cols=['Machine failure', 'RNF']))
 ##############################################################################################################################
+#####################################      Analysis & Visualisation      #####################################################
+##############################################################################################################################
+''' 
+Introduction:
+Mile Stone 4 - Now that the data has been transformed, management would like to draw deeper insights from the data. 
+You will dive deeper into the dataset to identify any patterns or trends not visible by your previous analysis. 
+By gaining these deeper insights, management can make more informed decisions about the manufacturing process to help to reduce manufacturing failures
 
+Task 1: Current operating ranges 
+Task 2: Determine the failure rate in the process 
+    Task 2a) Determine and visualise how many failures have happened in the process, what percentage is this of the total? 
+'''
+
+# 
+
+# Data Preprocessing - DataTransformation decisions from Milestone 3
 print('##############################################################################')
 print('Step 0: Load the Data')
 load_data = LoadData('failure_data.csv')  # Instantiate the class with your file name
@@ -86,8 +88,10 @@ machine_failure_col_mapping = {
 # rename df 
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
 print('##############################################################################')
-# Analyses and Visualisation 
-# Task 1: Current operating ranges 
+
+###################################################################################################
+## Task 1: Current operating ranges  
+###################################################################################################
 
 columns_of_interest=['air_temperature', 'process_temperature', 'rotational_speed_actual','torque', 'tool_wear']
 
@@ -112,12 +116,18 @@ plott.histplot('tool_wear')
 plt.show()
 # ##################################################################################################
 # # Task 2: Determine the failure rate in the process 
+'''
+You've been tasked with determining how many and the leading causes of failure are in the manufacturing process.
+
+2a) Determine and visualise how many failures have happened in the process
+2b) what percentage is this of the total? - Plot of % Failures
+2c) Check if the failures are being caused based on the quality of the product. - Plot of Failures per product 
+
+2d) What seems to be the leading causes of failure in the process? 
+2e) Create a visualisation of the number of failures due to each possible cause during the manufacturing process.
+'''
 # ##################################################################################################
-# You've been tasked with determining how many and the leading causes of failure are in the manufacturing process.
-
-# T2a) Determine and visualise how many failures have happened in the process, what percentage is this of the total? 
-
-# T2a) Barplot of machine failures 
+'''2a) Determine and visualise how many failures have happened in the process - Barplot of machine failures'''
 # failure_types = ['machine_failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
 failure_types = ['machine_failure', 'tool_wear_failure', 'head_dissapation_failure', 'power_failure','overstrain_failure','random_failure']
 
@@ -144,10 +154,6 @@ if not are_failures_equal:
     print('''This result is `False`, indicating that the `machine_failure` flag can represent 
          multiple failure types for a single observation. For example, one observation can contain both 
          a random failure and a PWF failure.''')
-
-
-# ##################################################################################################
-#T2a) Determine and visualise how many failures have happened in the process
 
 print('#' * 100)
 # print(failure_data_df[failure_types].head())
@@ -178,7 +184,8 @@ plt.ylabel('Count')
 # Show the plot
 plt.show()
 
-# # T2a) Calculate the % failure for each failure type
+'''2b) what percentage is this of the total? - Plot of % Failures'''
+# Calculate the % failure for each failure type
 print('\n')
 percentage_failures_df = failure_sum_df / len(failure_data_df) * 100 
 print(percentage_failures_df) # TODO: needs a column heading
@@ -239,10 +246,9 @@ plt.show()
 print('Leading cause of failure is in product type L, although this is biased as there are lot more observations for L product type than the rest.')
 print('machine_failure, overstrain_failure and head_dissapation_failures are the highest across the product')
 
-#TODO: look at product type split by failures.
 # ##################################################################################################
-
-# # Task 3 
+# # Task 3: A Deeper Understanding of Failures 
+# ##################################################################################################
 # With the failures identified you will need to dive deeper into what the possible causes of failure might be in the process.
 # 3a) For each different possible type of failure try to investigate if there is any correlation between any of the settings the machine was running at. 
 from manufacturing_eda_classes import LoadData, DataFrameInfo, DataTransform, Plotter, Models
@@ -274,40 +280,8 @@ plott.correlation_heatmap(threshold=0.40)
 plt.show()
 
 print('Machine failure is weakly correlated with OSF, HDF and TWF')
-
-# # 3b) Do the failures happen at certain torque ranges, processing temperatures or rpm?
-
-# model = Models(failure_data_df)
-# predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
-
-# # Prove that LOGIT model is better than OLS based on OLS's r-squared alone and the benefit that logistiric regression provides when variables are binary (1,0).
-# logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
-# ols_model_machine_failure = model.ols(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
-
-# # model.plot_model_curves(predictor_vars, model='logit', combine_plots=1, standardize=True)
-# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
-
-# # 3c) Try to identify these risk factors so that the company can make more informed decisions about what settings to run the machines at. 
-# Experimenting with filtered datasets: filtering by `Type` and other types of failires e.g. L & HDF....
-# dt = DataTransform(failure_data_df)
-# model = Models(failure_data_df)
-# predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
-
-# # Filtered For Type `L` products only.
-# bool_type_L_only = failure_data_df['Type']=='L'
-# type_L_df = failure_data_df[bool_type_L_only]
-# type_L_model = Models(type_L_df)
-
-# # Type `L` & y = `OSF`
-# type_L_model.plot_model_curves(predictor_vars, target_var='overstrain_failure', model='logit', ncols=3, standardize=False) # **L & OSF** #TODO: find the inflection points here 
-
-# # Type `L` & y = `HDF`
-# type_L_model.plot_model_curves(predictor_vars, target_var='head_dissapation_failure', model='logit', ncols=3, standardize=False) # **L & HDF** # #TODO find the inflection points here
-# type_L_model.plot_model_curves(predictor_vars, target_var='random_failure', model='logit', ncols=3, standardize=False) # L & RNF
-# type_L_model.plot_model_curves(predictor_vars, target_var='machine_failure', model='logit', ncols=3, standardize=False) # L & machine failure 
-
-# Task 3)
-
+####################################################################################################################################################################################
+# 3b) Do the failures happen at certain torque ranges, processing temperatures or rpm?
 # Setup df & instances for Plots 
 failure_data_df = dt.rename_colunms(machine_failure_col_mapping)
 model = Models(failure_data_df)
@@ -339,7 +313,6 @@ business_strategy = {
     'process_temperature': [312],  
     'tool_wear': [240]
 }
-
 # 4) Plot of Theoretical and Business Strategy on Actuals
 model = Models(failure_data_df_copy)
 model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False, plot_derivatives=False, local_minima=True, theoretical_strategy=theoretical_strategy, 
@@ -357,9 +330,35 @@ print(f'Results of Theoretical Strategy: \n {result_theoretical_strategy}')
 print(f'Results of Business Strategy \n {result_business_approach}')
 
 # Suggestions to the Business: Focus on 'Tool Wear' 
+####################################################################################################################################################################################
+# TODO - Put in Appendix 
+# Task 3 - Experimenting with combinations of `Type` & different 'failures'
 
+# model = Models(failure_data_df)
+# predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
 
+# # Prove that LOGIT model is better than OLS based on OLS's r-squared alone and the benefit that logistiric regression provides when variables are binary (1,0).
+# logit_model_machine_failure = model.logit(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
+# ols_model_machine_failure = model.ols(formula = "machine_failure ~ air_temperature + process_temperature + rotational_speed_actual + torque + tool_wear", model_summary=1)
 
+# # model.plot_model_curves(predictor_vars, model='logit', combine_plots=1, standardize=True)
+# model.plot_model_curves(predictor_vars, model='logit', ncols=3, standardize=False)
 
+# # 3c) Try to identify these risk factors so that the company can make more informed decisions about what settings to run the machines at. 
+# Experimenting with filtered datasets: filtering by `Type` and other types of failires e.g. L & HDF....
+# dt = DataTransform(failure_data_df)
+# model = Models(failure_data_df)
+# predictor_vars = ['torque', 'rotational_speed_actual', 'air_temperature', 'process_temperature', 'tool_wear']
 
+# # Filtered For Type `L` products only.
+# bool_type_L_only = failure_data_df['Type']=='L'
+# type_L_df = failure_data_df[bool_type_L_only]
+# type_L_model = Models(type_L_df)
 
+# # Type `L` & y = `OSF`
+# type_L_model.plot_model_curves(predictor_vars, target_var='overstrain_failure', model='logit', ncols=3, standardize=False) # **L & OSF** #TODO: find the inflection points here 
+
+# # Type `L` & y = `HDF`
+# type_L_model.plot_model_curves(predictor_vars, target_var='head_dissapation_failure', model='logit', ncols=3, standardize=False) # **L & HDF** # #TODO find the inflection points here
+# type_L_model.plot_model_curves(predictor_vars, target_var='random_failure', model='logit', ncols=3, standardize=False) # L & RNF
+# type_L_model.plot_model_curves(predictor_vars, target_var='machine_failure', model='logit', ncols=3, standardize=False) # L & machine failure 
