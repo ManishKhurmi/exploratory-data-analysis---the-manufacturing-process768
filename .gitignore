@@ -4,7 +4,7 @@ credentials.yaml
 # Folders 
 __pycache__/
 .vscode/
-
+legacy_code/
 # .py files to ignore
 
 
