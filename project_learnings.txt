@@ -33,9 +33,7 @@ Search for `EDA Note` in the script to see where to go back and change decision 
 e.g. ***Strategic EDA decision***: adjust |z| scores.
 ############################################################################################################################################
 
-
 if a transformation is made on a column. Rename said column. For example if the skewness transformation on air_temp was kept then rename that column 
-
 
 Explain what degrees of freedom (df) is, in the context of statistics?
 - `df` determines the number of values in a calculaiton that are free to vary. 
