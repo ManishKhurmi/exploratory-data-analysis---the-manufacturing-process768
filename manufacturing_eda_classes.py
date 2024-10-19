@@ -379,7 +379,6 @@ class DataTransform:
 class Plotter:
     def __init__(self, df):
         self.df = df
-        # self.data_info = data_info
     
     def histplot(self, column, kde=False, ax=None):
         if ax is None:
@@ -424,7 +423,6 @@ class Plotter:
         plt.title(f'Q-Q plot for {column}')
         plt.show()
     
-    
     def scatter(self, column_name):
         scatter_plot = sns.scatterplot(self.df[column_name])
         plt.show()
@@ -450,7 +448,6 @@ class Plotter:
 
         plt.tight_layout()
         plt.show()
-
     
     def histograms_with_z_score_bounds(self, vars_list):
 

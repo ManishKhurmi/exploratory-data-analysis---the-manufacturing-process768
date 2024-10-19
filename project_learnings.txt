@@ -1,3 +1,29 @@
+Summary 
+What I Learned:
+Project Phases Matter: I found that aiming to stick with the process—Task definition, Analysis, Development, and Testing—made the project run much smoother. 
+Spending more time on defining the task and analysing what needs to be done upfront saved me from reworking during development and helped me move forward with clarity.
+
+Validate Mathematical Libraries: When working with mathematical programming packages, I made sure to review the underlying logic in the documentation. 
+This gave me confidence in the results and a deeper understanding of how the package behaves. 
+For example, I tested skewness transformations by validating the theory and running examples, which strengthened my trust in the approach.
+
+Data Types Guide Model Selection: Understanding the data types early on made model selection easier. 
+Since I had independent variables that were numeric and binary, I knew that logistic regression would be a good fit for this classification task. 
+Logistic regression is ideal for binary outcomes because it models the probability of an event occurring (such as machine failure) and outputs values between 0 and 1. 
+This made it an obvious choice for predicting machine failure.
+
+Effective Visualisations: I learned that when including visualisations, it’s crucial to focus on those that add real value. 
+While it’s easy to create many plots, I realised that too many can dilute the message. 
+Instead, I focused on a few key visualisations that clarified my thought process and strengthened the analysis.
+
+Modular EDA with Classes: By organising the exploratory data analysis (EDA) into classes, I was able to experiment with different approaches efficiently. 
+This structure allowed me to test new ideas quickly and made the code more reusable for different stages of the project.
+
+Combining Statistics and Visuals: I saw firsthand how powerful it can be to combine statistical modelling with clear visualisations. 
+This combination allowed me to turn complex data into actionable insights that could directly support business decisions.
+
+
+
 Use Classes & Methods to make the EDA process more efficient 
 Use .ipynb files for visualisation & analysis 
 label variables well to ensure there are not overwriting issues in the code 

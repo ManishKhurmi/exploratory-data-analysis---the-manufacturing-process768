@@ -1,0 +1,6 @@
+name: manufacturing_eda
+channels:
+  - defaults
+dependencies:
+  - python=3.12.3
+prefix: /Users/manishkhurmi/anaconda3/envs/manufacturing_eda
