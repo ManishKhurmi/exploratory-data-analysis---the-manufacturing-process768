@@ -16,6 +16,30 @@ import contextlib
 import io
 import os
 
+#org
+    # def __init__(self, file_name):
+    #     """
+    #     Initialize with the file name and load the data as a pandas DataFrame.
+    #     """
+    #     self.file_name = file_name
+    #     self.df = self.load_dataframe()
+
+    # def find_file_path(self):
+    #     """
+    #     Locate the file in the current directory or subdirectory.
+    #     Raise an error if the file is not found.
+    #     """
+    #     current_dir = os.getcwd()  # Get current working directory where the script is running
+    #     file_path = os.path.join(current_dir, self.file_name)  # Form full path
+
+    #     if os.path.exists(file_path):  # Check if file exists
+    #         print(f"File found: {file_path}")
+    #         return file_path
+    #     else:
+    #         raise FileNotFoundError(f"File '{self.file_name}' not found in directory '{current_dir}'.")
+##############
+
+
 class LoadData:
     def __init__(self, file_name):
         """
@@ -26,17 +50,18 @@ class LoadData:
 
     def find_file_path(self):
         """
-        Locate the file in the current directory or subdirectory.
+        Locate the file in the 'data' directory.
         Raise an error if the file is not found.
         """
-        current_dir = os.getcwd()  # Get current working directory where the script is running
-        file_path = os.path.join(current_dir, self.file_name)  # Form full path
+        # Directly look in the 'data' directory relative to the project's root
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        file_path = os.path.join(data_dir, self.file_name)
 
         if os.path.exists(file_path):  # Check if file exists
             print(f"File found: {file_path}")
             return file_path
         else:
-            raise FileNotFoundError(f"File '{self.file_name}' not found in directory '{current_dir}'.")
+            raise FileNotFoundError(f"File '{self.file_name}' not found in the 'data' directory.")
 
     def load_dataframe(self):
         """
@@ -49,6 +74,16 @@ class LoadData:
             return df
         except Exception as e:
             raise Exception(f"Error loading DataFrame from '{file_path}': {e}")
+
+
+# # Example usage
+# load_data = LoadData('failure_data.csv')
+# df = load_data.df  # Access the loaded DataFrame
+# print(df.head())
+
+# Check if the file exists in the 'data' directory
+# file_path = os.path.join('/Users/manishkhurmi/Desktop/EDA_project/data', 'failure_data.csv')
+# print(f"File exists: {os.path.exists(file_path)}")
 
 
 class DataFrameInfo:

@@ -1,14 +1,58 @@
-# exploratory-data-analysis---the-manufacturing-process768
+# Exploratory Data Analysis - The Manufacturing Process
+
+## Table of Contents
+1. [Installation Instructions](#installation-instructions)
+   - [Option 1: Using Conda (Basic Setup - No Database Integration)](#option-1-using-conda-basic-setup---no-database-integration)
+   - [Option 2: Using Conda (Full Setup - Includes Database Integration)](#option-2-using-conda-full-setup---includes-database-integration)
+   - [Option 3: Using pip Install](#option-3-using-pip-install)
+   - [Option 4: Using a Python Virtual Environment (Basic Setup - No Database Integration)](#option-4-using-a-python-virtual-environment-basic-setup---no-database-integration)
+   - [Option 5: Using a Python Virtual Environment (Full Setup - Includes Database Integration)](#option-5-using-a-python-virtual-environment-full-setup---includes-database-integration)
+2. [Project Description](#project-description)
+3. [Usage Instructions](#usage-instructions)
+4. [File Structure of the Project](#file-structure-of-the-project)
+5. [Project Workflow](#project-workflow)
+6. [License Information](#license-information)
+
 
 ## Installation instructions
-Run in the following order:
-1. manufacturing_EDA.ipynb
-2. 
+### Option 1: Using Conda (Basic Setup - No Database Integration)
 
+If you only want to see the EDA of the manufacturing data set and do not want to extract the data yourself from the cloud (i.e. run the `db_utils.py`), you can create the Conda Environment with the following command:
+
+```bash
+conda env create -f environment.yml
+```
+### Option 2: Using Conda (Full Setup - Includes Database Integration)
+
+```bash
+conda env create -f environment_with_db.yml
+```
+You may need the following system level packages too:
+
+```
+brew install libpq
+brew link --force libpq
+```
+### Option 3: Using pip install 
+
+```
+pip install PyYAML sqlalchemy psycopg2 pandas numpy matplotlib seaborn scipy statsmodels ipython scikit-learn
+```
+### Option 4: Using a python virtual environement (Basic Setup - No Database Integration)
+
+```
+pip install -r requirements.txt
+```
+
+### Option 5: Using a python virtual environement (Full Setup - Includes Database Integration)
+
+```
+pip install -r requirements_with_db.txt
+```
 
 ## Table of Contents, if the README file is long
 
-## A description of the project: what it does, the aim of the project, and what you learned
+## Project Description
 
 This project focuses on optimising a key manufacturing process for a large industrial company, aiming to improve efficiency and profitability by reducing waste and maximising output. Using logistic regression to predict machine failure and analysing the local minima of the second derivative of machine performance, I derived operational thresholds to prevent failures and enhance performance.
 
@@ -24,34 +68,56 @@ The dataset contains information from 10,000 production sessions, including mach
 
 ## Usage instructions
 
-### Option 1: Using Conda (Basic Setup - No Database Integration)
+Run in the following order:
+1. manufacturing_EDA.ipynb
 
-If you only want to see the EDA of the manufacturing data set and do not want to extract the data yourself from the cloud (i.e. run the `db_utils.py`), you can create the Conda Environment with the following command:
+If you want to test/play around with different data treatement techniques, plots and analysis:
 
-```bash
-conda env create -f environment.yml
-```
-### Option 2: Using Conda (Full Setup - Includes Database Integration)
+2. preprocessing.py
+3. analysis_and_visualisation.py
 
-```bash
-conda env create -f environment_with_db.yml
-```
-Tou may need the following system level packages:
-
-```
-brew install libpq
-brew link --force libpq
-```
-### Option 3: Using pip install for your own virtual env
-
-```
-pip install PyYAML sqlalchemy psycopg2 pandas numpy matplotlib seaborn scipy statsmodels ipython scikit-learn
-```
 
 ## File structure of the project
-![alt text](<Screenshot 2024-10-19 at 09.04.24.png>)
+
+```
+EDA_PROJECT/
+│
+├── config/
+│   └── credentials.yaml          # Configuration file storing database credentials
+│
+├── data/
+│   └── failure_data.csv          # The main dataset used for analysis
+│
+├── docs/
+│   └── project_learnings.txt     # Documentation and learnings from the project
+│
+├── environments/
+│   ├── environment.yml           # Conda environment file (basic setup)
+│   └── environment_with_db.yml   # Conda environment file (with database utilities)
+│
+├── notebooks/
+│   ├── db_utils.ipynb            # Jupyter notebook for database-related utilities
+│   └── manufacturing_EDA.ipynb   # Main Jupyter notebook for exploratory data analysis
+│   └── test.csv                  # Test file for quick data checks (if applicable)
+│
+├── requirements/
+│   ├── requirements.txt          # Basic requirements file for pip installations
+│   └── requirements_with_db.txt  # Requirements file with database-related packages
+│
+├── scripts/
+│   ├── analysis_and_visualisation.py   # Script for analysis and visualization functions
+│   ├── manufacturing_eda_classes.py    # Main class definitions for data processing
+│   └── preprocessing.py                # Script for data preprocessing tasks
+│
+├── .gitignore                   # Git configuration to ignore unnecessary files
+├── file_structure.png           # Image showing the project directory structure
+└── README.md                    # Project overview and documentation
+
+```
+
+### Project Workflow
+![alt text](<file_structure.png>)
 
 ## License information
 Open to all 
-
 
