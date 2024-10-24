@@ -13,7 +13,6 @@
 5. [Project Workflow](#project-workflow)
 6. [License Information](#license-information)
 
-
 ## Installation instructions
 ### Option 1: Using Conda (Basic Setup - No Database Integration)
 
@@ -43,15 +42,11 @@ pip install PyYAML sqlalchemy psycopg2 pandas numpy matplotlib seaborn scipy sta
 ```
 pip install -r requirements.txt
 ```
-
 ### Option 5: Using a python virtual environement (Full Setup - Includes Database Integration)
 
 ```
 pip install -r requirements_with_db.txt
 ```
-
-## Table of Contents, if the README file is long
-
 ## Project Description
 
 This project focuses on optimising a key manufacturing process for a large industrial company, aiming to improve efficiency and profitability by reducing waste and maximising output. Using logistic regression to predict machine failure and analysing the local minima of the second derivative of machine performance, I derived operational thresholds to prevent failures and enhance performance.

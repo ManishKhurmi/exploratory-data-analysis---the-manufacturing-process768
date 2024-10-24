@@ -16,34 +16,16 @@ import contextlib
 import io
 import os
 
-#org
-    # def __init__(self, file_name):
-    #     """
-    #     Initialize with the file name and load the data as a pandas DataFrame.
-    #     """
-    #     self.file_name = file_name
-    #     self.df = self.load_dataframe()
-
-    # def find_file_path(self):
-    #     """
-    #     Locate the file in the current directory or subdirectory.
-    #     Raise an error if the file is not found.
-    #     """
-    #     current_dir = os.getcwd()  # Get current working directory where the script is running
-    #     file_path = os.path.join(current_dir, self.file_name)  # Form full path
-
-    #     if os.path.exists(file_path):  # Check if file exists
-    #         print(f"File found: {file_path}")
-    #         return file_path
-    #     else:
-    #         raise FileNotFoundError(f"File '{self.file_name}' not found in directory '{current_dir}'.")
-##############
-
-
 class LoadData:
-    def __init__(self, file_name):
+    def __init__(self, file_name: str) -> None: 
         """
-        Initialize with the file name and load the data as a pandas DataFrame.
+        Initialize with the file name and load the data as a pandas DataFrame. 
+
+        Args:
+        file_name (str): The name of the file to load data from.
+
+        Example:
+        file_name = 'failure_data.csv'
         """
         self.file_name = file_name
         self.df = self.load_dataframe()
@@ -75,75 +57,77 @@ class LoadData:
         except Exception as e:
             raise Exception(f"Error loading DataFrame from '{file_path}': {e}")
 
-
-# # Example usage
-# load_data = LoadData('failure_data.csv')
-# df = load_data.df  # Access the loaded DataFrame
-# print(df.head())
-
-# Check if the file exists in the 'data' directory
-# file_path = os.path.join('/Users/manishkhurmi/Desktop/EDA_project/data', 'failure_data.csv')
-# print(f"File exists: {os.path.exists(file_path)}")
-
-
 class DataFrameInfo:
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame) -> None:
         self.df = df 
     
-    def return_shape(self):
+    def return_shape(self) -> str:
         return str(self.df.shape) 
     
-    def return_info(self):
+    def return_info(self) -> None:
         return self.df.info()
     
-    def return_first_row(self):
+    def return_first_row(self) -> pd.Series:
          return self.df.iloc[0]
 
-    def data_type(self):
+    def data_type(self) -> None:
         print(self.df.dtypes)
     
-    def describe_statistics(self, columns):
-        # return self.df.describe().loc[['mean', 'std', '50%']]
+    def describe_statistics(self, columns: list[str]) -> pd.DataFrame:
         return self.df[columns].describe()
     
-    def unique_value_count(self, column_names):
+    def unique_value_count(self, column_names: list[str]) -> pd.Series:
         return self.df[column_names].nunique()
     
-    def percentage_of_null(self):
+    def percentage_of_null(self) -> pd.Series:
         percentage_of_null = self.df.isnull().sum() / len(self.df) * 100  
         return percentage_of_null
     
-    def are_all_observations_unique(self, column_name):
+    def are_all_observations_unique(self, column_name: list[str]) -> pd.Series:
         print(f'The {column_name} column contains only unique rows: {len(self.df) == self.df[column_name].nunique()}')
     
-    def normal_test(self, column_name):
+    def normal_test(self, column_name: str) -> None:
         stat, p = normaltest(self.df[column_name], nan_policy = 'omit')
         print('Statistics=%.3f, p=%.3f' % (stat, p))
 
-    def skew_test(self, column_name):
+    def skew_test(self, column_name: str) -> float:
         return self.df[column_name].skew()
 
-    def print_mean(self, column_name):
+    def print_mean(self, column_name) -> None:
         print(f'The mean of {column_name} is {self.df[column_name].mean()}')
     
-    def print_median(self, column_name):
+    def print_median(self, column_name) -> None:
         print(f'The median of {column_name} is {self.df[column_name].median()}')
 
-    def column_names(self):
+    def column_names(self) -> pd.Index:
         return self.df.columns
 
-    def continous_variables(self):
+    def continous_variables(self) -> list[str]:
+        '''    
+        Identifies and returns a list of continuous variables in the DataFrame.
+        A variable is considered continuous if it has more than two unique values.
+        Returns:
+            list: A list of column names representing continuous variables.
+        '''
         continous_variables = []
         for i in self.df.columns:
             if self.df[i].nunique() > 2:
                 continous_variables.append(i)
         return continous_variables
     
-    def z_score_info(self, z_scores):
+    def z_score_info(self, z_scores: pd.Series) -> None:
+        ''' 
+        Displays the number and percentage of outliers for z-score thresholds of ±2 and ±3.
+        Useful for understanding data loss when filtering outliers based on these thresholds.
+        
+        Example usage:
+        air_temperature_z_scores = dt.z_score('air_temperature')
+        info = DataFrameInfo(failure_data_df)
+        info.z_score_info(air_temperature_z_scores)
+        '''
         # Z-score Threshold 
         threshold_2 = 2 
         threshold_3 = 3
-        # z_scores = udi_process_temp_df_z['z_scores']
 
         outliers_2 = (np.abs(z_scores) > threshold_2).sum() 
         outliers_3 = (np.abs(z_scores) > threshold_3).sum()
@@ -157,8 +141,8 @@ class DataFrameInfo:
         print(f"Number of observations with outliers based on z-score threshold ±3: {outliers_3}")
         print(f"Percentage of observations with outliers based on z-score threshold ±3: {percentage_outliers_thereshold_3}")
     
-    def range_df(self, columns):
-        '''Returns the range of each column of the df'''
+    def range_df(self, columns: list[str]) -> pd.DataFrame:
+        '''Calculate and return the range (minimum and maximum values) for each specified column in the DataFrame.'''
         min_values = self.df[columns].min()
         max_values = self.df[columns].max()
 
@@ -173,31 +157,30 @@ class DataFrameInfo:
 
 
 class DataTransform:
-    def __init__(self, df):
+    def __init__(self, df) -> None:
         self.df = df
 
-    def unique_observations(self, column_name):
+    def unique_observations(self, column_name: str) -> np.ndarray:
+        '''Retrieve unique values from a specified column in the DataFrame.'''
         return self.df[column_name].unique()
     
-    def convert_column_to_category(self, column_name):
-        '''
-        converts the dtype of column to 'category'
-        '''
+    def convert_column_to_category(self, column_name: str) -> pd.DataFrame:
+        ''' converts the dtype of column to `category` '''
         self.df[column_name] = pd.Categorical(self.df[column_name])
         return self.df
     
-    def create_dummies_from_column(self, column_name):
+    def create_dummies_from_column(self, column_name: str) -> pd.DataFrame:
+        '''Generate dummy/indicator variables from a specified column.'''
         dummies_df = pd.get_dummies(self.df[column_name], dtype=int)
         return dummies_df 
 
-    def concat_dataframes(self, new_df, left_index=True, right_index=True):
-        '''
-        This functions joins on the index of the LEFT DataFrame
-        '''
+    def concat_dataframes(self, new_df: pd.DataFrame, left_index: bool = True, right_index: bool = True) -> pd.DataFrame:
+        '''Concatenate the current DataFrame with another DataFrame'''
         joined_df = pd.concat([self.df, new_df], axis = 1)
         return joined_df
     
-    def impute_missing_values(self, imputation_dict):
+    def impute_missing_values(self, imputation_dict: dict[str,str]) -> pd.DataFrame:
+        '''Impute missing values in columns based on specified methods.'''
         print("\nExecuting: Imputing Missing Values")
         
         for column, method in imputation_dict.items():
@@ -225,7 +208,7 @@ class DataTransform:
         print("Completed: Imputation of Missing Values")
         return self.df
 
-    def treat_skewness(self, column_name, normalied_column_name, method='log_transform'):
+    def treat_skewness(self, column_name: str, normalied_column_name: str, method: str ='log_transform') -> pd.DataFrame:
         """
         Applies the specified skewness treatment method to a column.
         Returns the orignal df with the addion of the normalised column.
@@ -258,18 +241,16 @@ class DataTransform:
         # normalised_var = self.df[normalied_column_name]
         return self.df
     
-    def z_score(self, column): # takes in a column and creates z scores, 
+    def z_score(self, column: str) -> pd.Series: 
+        '''Calculates the Z-Scores of a specified column'''
         x = self.df[column] 
         mean= np.mean(x)
         standard_deviation = np.std(x)
         z_scores = (x - mean) / standard_deviation
         return z_scores
     
-    def outliers_via_z_score_df(self, column, z_threshold = [[2,3]]):
-
-        '''
-        returns a df of outliers based on the z_scores of a selected variable
-        '''
+    def outliers_via_z_score_df(self, column: str, z_threshold: list[float] = [[2,3]]) -> pd.DataFrame:
+        '''Returns a df containing the outliers based on Z-score thresholds.'''
         # create z scores
         x = self.df[column] 
         mean= np.mean(x)
@@ -283,7 +264,7 @@ class DataTransform:
         outliers_via_z = self.df[outliers]
         return outliers_via_z
 
-    def filter_outliers(self, outliers_df, key_ID):
+    def filter_outliers(self, outliers_df: pd.DataFrame, key_ID: str) -> pd.DataFrame:
         '''
         Filters outliers from df using a the shared key.
         Use in conjuction with outliers_via_z_score or outliers_df_via_IQR methods.
@@ -294,7 +275,7 @@ class DataTransform:
         print(f'length of filtered df: {len(self.df[mask])}')
         return self.df[mask]
     
-    def outliers_df_via_IQR(self, column):
+    def outliers_df_via_IQR(self, column: str) -> pd.DataFrame:
         # Upper and lower quartiles 
         Q1 = self.df[column].quantile(0.25)
         Q3 = self.df[column].quantile(.75)
@@ -310,7 +291,7 @@ class DataTransform:
         outliers = self.df[(var < (Q1 - 1.5 * IQR)) | (var > (Q3 + 1.5 * IQR))]
         return outliers
     
-    def drop_column(self, vars):
+    def drop_column(self, vars: list[str]) -> pd.DataFrame:
         '''Returns the filtered df'''
         # df_numeric_vars = failure_data_treating_outliers.drop(['UDI', 'Type'], axis = 1)
         filtered_df = self.df.drop(vars, axis = 1)
@@ -318,7 +299,7 @@ class DataTransform:
         print(f'Column List After dropping df\n: {filtered_df.columns}')
         return filtered_df
     
-    def merge(self, df_to_merge, on='UDI', how='left'):
+    def merge(self, df_to_merge, on: str ='UDI', how: str ='left'):
         ''' Merges two DataFrames and gives the length of all DataFrames involved throughout the process'''
         print(f'Length of df: {len(self.df)}')
         print(f'Length of df_to_merge: {len(df_to_merge)}')
@@ -326,17 +307,15 @@ class DataTransform:
         print(f'Length of new_df: {len(self.df)}')
         return self.df
     
-    def rename_colunms(self, col_mapping):
+    def rename_colunms(self, col_mapping: dict[str, str]) -> pd.DataFrame:
         ''' Renames columns and gives a list of the columns before and after the function is applied'''
         print(f'Before renaming: {list(self.df.columns)}\n')
         self.df = self.df.rename(columns=col_mapping)
         print(f'After renaming: {list(self.df.columns)}\n')  
         return self.df
 
-    def remove_outliers(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3]):
-        '''
-        Remove outliers across multiple columns using IQR and return the filtered dataframe.
-        '''
+    def remove_outliers(self, columns: list[str], key_ID: str ='UDI', method: str = ['IQR', 'z_score'], z_threshold: list[float] = [2,3]):
+        '''Remove outliers across multiple columns using IQR and return the filtered dataframe.'''
         original_len = len(self.df)  # Store the original length of the DataFrame
         filtered_df = self.df  # Start with the original dataframe
         
@@ -359,11 +338,12 @@ class DataTransform:
 
         return filtered_df, percentage_data_loss
     
-    def generate_permutations(self, input_list):
-        # Generate all permutations of the given length
+    def generate_permutations(self, input_list: list[str]) -> list[tuple[str]]:
+        '''Generate all permutations of a given list.'''
         return list(permutations(input_list, len(input_list)))
     
-    def remove_outliers_with_optimiser(self, columns, key_ID='UDI', method = ['IQR', 'z_score'], z_threshold = [2,3], suppress_output=False):
+    def remove_outliers_with_optimiser(self, columns: list[str], key_ID: str='UDI', method: str = ['IQR', 'z_score'], z_threshold: list[float] = [2,3], suppress_output: bool=False) -> tuple[pd.DataFrame, tuple[str], dict[tuple[str], float]]:
+        '''Optimally remove outliers by testing permutations of the specified columns.'''
         permutations_result = self.generate_permutations(columns)
 
         combination_percentage_dict = {}
@@ -412,24 +392,24 @@ class DataTransform:
         return best_filtered_df, min_combination, combination_percentage_dict
     
 class Plotter:
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame) -> None:
         self.df = df
     
-    def histplot(self, column, kde=False, ax=None):
+    def histplot(self, column: str, kde: bool = False, ax = None) -> None:
+        '''Plot a histogram for a given column with an optional KDE overlay.'''
         if ax is None:
             ax = plt.gca()  # Get current active axis if none is provided
         sns.histplot(self.df[column], kde=kde, ax=ax)
         ax.set_title(f'Histogram for {column}')
         plt.show
 
-    def skew_test(self, column_name):
+    def skew_test(self, column_name: str) -> float:
+        '''Calculate the skewness of a specified column.'''
         return self.df[column_name].skew()
 
-    def histogram_and_skew_sub_plots(self, variable_list, num_cols=3):
-
-        #fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+    def histogram_and_skew_sub_plots(self, variable_list: list[str], num_cols: int = 3) -> None:
+        '''Create subplots for histograms and skewness of multiple variables.'''
         num_vars = len(variable_list)
-        #num_cols = 3  # Define number of columns for the subplot grid
         num_cols = num_cols  # Define number of columns for the subplot grid
         num_rows = math.ceil(num_vars / num_cols)  # Calculate number of rows needed
 
@@ -451,22 +431,26 @@ class Plotter:
         plt.tight_layout()
         plt.show()
 
-    def plot_qq(self, column, ax=None):
+    def plot_qq(self, column: str, ax=None) -> None:
+        '''Generate a Q-Q (Quantile-Quantile) plot for a specified column.'''
         if ax is None:
             ax = plt.gca()  # Get current active axis if none is provided
         qq_plot= qqplot(self.df[column], scale=1, line ='q', ax=ax)
         plt.title(f'Q-Q plot for {column}')
         plt.show()
     
-    def scatter(self, column_name):
+    def scatter(self, column_name: str) -> None:
+        ''' Create a scatter plot for a given column.'''
         scatter_plot = sns.scatterplot(self.df[column_name])
         plt.show()
         
-    def boxplot(self, column):
+    def boxplot(self, column: str) -> None:
+        '''Create a boxplot for a specified column.'''
         box_plot = sns.boxplot(self.df[column])
         plt.show()
     
-    def boxplots(self, variable_list):
+    def boxplots(self, variable_list: list[str]) -> None:
+        '''Create boxplots for multiple variables side by side.'''
 
         # Number of variables
         num_vars = len(variable_list)
@@ -484,7 +468,8 @@ class Plotter:
         plt.tight_layout()
         plt.show()
     
-    def histograms_with_z_score_bounds(self, vars_list):
+    def histograms_with_z_score_bounds(self, vars_list: list[str]) -> None:
+        '''Plot histograms with Z-score thresholds for multiple variables.'''
 
         # Define Z-score thresholds
         z_thresholds = [2, 3]
@@ -559,7 +544,7 @@ class Plotter:
         plt.tight_layout()
         plt.show()
 
-    def correlation_heatmap(self, figsize=(12, 10), threshold=0, ax=None):
+    def correlation_heatmap(self, figsize: tuple[int, int] =(12, 10), threshold: float = 0, ax=None) -> None:
         """
         Generates a correlation heatmap, optionally filtered by a correlation threshold.
         
@@ -585,21 +570,44 @@ class Plotter:
             ax.set_title('Correlation Heatmap')
 
 class Models: 
-    def __init__(self, df):
+    def __init__(self, df) -> None:
             self.df = df 
 
     @staticmethod
-    def r_squared(linear_model, model_name):
-          r2 = linear_model.rsquared
-          print(f"{model_name}: {r2}")
+    def r_squared(linear_model, model_name: str) -> None:
+        '''
+        Print the R-squared value of a linear model.
+        Args:
+            linear_model: Fitted linear model object.
+            model_name (str): Name of the model for display purposes.
+        '''
+        r2 = linear_model.rsquared
+        print(f"{model_name}: {r2}")
           
     @staticmethod
-    def VIF(linear_model, model_name):
+    def VIF(linear_model, model_name) -> float:
+         '''
+         Calculate and print the Variance Inflation Factor (VIF) for a linear model.
+         Args:
+            linear_model: Fitted linear model object.
+            model_name (str): Name of the model for display purposes.
+         Returns:
+            float: Calculated VIF value.
+         '''
          r2 = linear_model.rsquared
          print(f'{model_name}: {1/(1-r2)}')
          return 1/(1-r2)
 
-    def chi_squared_test_df(self, binary_cols):
+    def chi_squared_test_df(self, binary_cols: list[str]) -> pd.DataFrame:
+        '''
+        Perform a Chi-Squared test between pairs of binary columns.
+        
+        Args:
+            binary_cols (List[str]): List of binary column names.
+            
+        Returns:
+            pd.DataFrame: DataFrame containing Chi-Squared test results for each pair.
+        '''
         # Store results in a list
         results = []
 
@@ -637,31 +645,31 @@ class Models:
         # Display the results
         return results_df
     
-    def ols(self, formula='machine_failure ~ air_temperature + process_temperature', model_summary=0):
+    def ols(self, formula: str ='machine_failure ~ air_temperature + process_temperature', model_summary: int = 0):
         """Fit and return the OLS model, optionally printing summary statistics"""
         ols_model = smf.ols(formula, self.df).fit()
         if model_summary == 1:
             print(ols_model.summary2())
         return ols_model
 
-    def logit(self, formula='machine_failure ~ air_temperature + process_temperature', model_summary=0):
+    def logit(self, formula: str ='machine_failure ~ air_temperature + process_temperature', model_summary: int = 0):
         """Fit and return the Logit (logistic regression) model, optionally printing summary statistics"""
         logit_model = smf.logit(formula, self.df).fit()
         if model_summary == 1:
             print(logit_model.summary2())
         return logit_model
     
-    def first_derivative(self, x, coefficients):
+    def first_derivative(self, x: float, coefficients: list[float]) -> float :
         """Calculate the first derivative of the logistic regression curve."""
         # This assumes the logistic function f(x) = 1 / (1 + exp(- (b0 + b1 * x)))
         return np.exp(-x) / (1 + np.exp(-x))**2
 
-    def second_derivative(self, x, coefficients):
+    def second_derivative(self, x: float, coefficients: list[float]) -> float:
         """Calculate the second derivative of the logistic regression curve."""
         # Second derivative for logistic regression
         return -np.exp(-x) * (1 - np.exp(-x)) / (1 + np.exp(-x))**3
 
-    def find_local_minima(self, x_values, y_values):
+    def find_local_minima(self, x_values: np.ndarray, y_values: np.ndarray) -> tuple[float, float]:
         """Helper function to find local minima in a given set of x and y values."""
         local_min_x = None
         local_min_y = None
@@ -672,12 +680,27 @@ class Models:
                 break  # Return the first local minimum found
         return local_min_x, local_min_y
 
-    def plot_model_curves(self, predictor_vars, target_var='machine_failure', model='ols', combine_plots=0, 
-                        ncols=3, standardize=False, plot_derivatives=False, local_minima=False, 
-                        theoretical_strategy=None, business_strategy=None):
+    def plot_model_curves(self, predictor_vars: list[str], target_var: str = 'machine_failure', model: str = 'ols', combine_plots: int = 0, 
+                        ncols: int = 3, standardize: bool = False, plot_derivatives: bool = False, local_minima: bool = False, 
+                        theoretical_strategy: dict[str, list[float]] = None, business_strategy: dict[str, list[float]] = None) -> dict[str, dict[str, tuple[float, float]]]:
         """
         Plot OLS or Logit model regression curves for each predictor variable or combine all into one plot.
         Optionally standardizes the variables and returns the minima coordinates for first and second derivatives.
+
+        Args:
+            predictor_vars (List[str]): List of predictor variable names.
+            target_var (str, optional): The target variable for regression. Default is 'machine_failure'.
+            model (str, optional): The regression model to use ('ols' or 'logit'). Default is 'ols'.
+            combine_plots (int, optional): Whether to combine plots for all predictors (1) or not (0). Default is 0.
+            ncols (int, optional): Number of columns for subplot grid. Default is 3.
+            standardize (bool, optional): Whether to standardize predictor variables. Default is False.
+            plot_derivatives (bool, optional): Whether to plot first and second derivatives. Default is False.
+            local_minima (bool, optional): Whether to find and mark local minima of derivatives. Default is False.
+            theoretical_strategy (Optional[Dict[str, List[float]]], optional): Theoretical threshold values. Default is None.
+            business_strategy (Optional[Dict[str, List[float]]], optional): Business-defined threshold values. Default is None.
+
+        Returns:
+            Dict[str, Dict[str, Optional[Tuple[float, float]]]]: Coordinates of local minima for derivatives.
         """
         
         # Dictionary to store the scaler for each predictor variable if standardization is applied
@@ -820,11 +843,11 @@ class Models:
 
         return minima_coordinates
 
-    def inverse_scale_minima(self, minima_coordinates):
+    def inverse_scale_minima(self, minima_coordinates: dict[str, dict[str, tuple[float, float]]]) -> dict[str, dict[str, tuple[float, float]]]:
         """
         Inverse the scaling applied to the minima coordinates using the data from self.df and the scalers saved in plot_model_curves.
 
-        Parameters:
+        Args:
         minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
 
         Returns:
@@ -854,12 +877,12 @@ class Models:
 
         return minima_coordinates
 
-    def extract_x_value_of_second_derivative(self, minima_coordinates):
+    def extract_x_value_of_second_derivative(self, minima_coordinates: dict[str, dict[str, tuple[float, float]]]) -> dict[str, list[int]]:
         """
         Returns a dictionary of variables and x-values by extracting the x-value of the second derivative minima,
         rounded to the nearest integer.
         
-        Parameters:
+        Args:
         minima_coordinates (dict): Dictionary containing the local minima coordinates for each predictor variable.
 
         Returns:
@@ -878,7 +901,19 @@ class Models:
         return strategy_dict
 
     # Helper function to calculate failure rate after applying a list of filters in a specific order
-    def apply_thresholds_in_order(self, strategy_dict, filter_order):
+    def apply_thresholds_in_order(self, strategy_dict: dict[str, list[float]], filter_order: list[str]) -> tuple[pd.DataFrame, float]:
+        '''
+        Apply a sequence of thresholds to the DataFrame in a specified order.
+    
+        Args:
+            strategy_dict (Dict[str, List[float]]): Dictionary of thresholds for each variable.
+            filter_order (List[str]): List specifying the order of variables to apply thresholds.
+        
+        Returns:
+            Tuple[Optional[pd.DataFrame], Optional[float]]: Filtered DataFrame and resulting failure rate.
+
+        '''
+
         filtered_df = self.df.copy()
 
         for variable in filter_order:
@@ -893,7 +928,7 @@ class Models:
         filtered_failure_rate = (filtered_failure_count / filtered_data_points) * 100
         return filtered_df, filtered_failure_rate
 
-    def impact_of_strategy(self, strategy_dict):
+    def impact_of_strategy(self, strategy_dict: dict[str, list[float]]) -> dict[str, float]:
         ''' 
         Finds the best order of filters to minimize the failure rate. 
         Returns the best order, the failure rate after applying the filters, 
@@ -942,7 +977,7 @@ class Models:
             'relative_improvement_percentage': f'{relative_improvement_percentage:.2f}%'  # As a percentage
         }
     @staticmethod
-    def present_results(result_dict):
+    def present_results(result_dict: dict[str, str]) -> str:
         """
         Presents the model results in a more readable format.
         
