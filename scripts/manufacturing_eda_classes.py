@@ -1,4 +1,4 @@
-# Imports
+# External Imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1001,3 +1001,10 @@ class Models:
         """
         
         return formatted_output
+
+if __name__ == '__main__':
+    help(LoadData)
+    help(DataFrameInfo)
+    help(DataTransform)
+    help(Plotter)
+    help(Models)

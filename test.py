@@ -18,5 +18,8 @@ info = DataFrameInfo(df)
 
 # print(info.percentage_of_null())
 
-dt = DataTransform(df)
-print(type(dt.unique_observations('Type')))
+# dt = DataTransform(df)
+# print(type(dt.unique_observations('Type')))
+
+help(LoadData)
+help(Models)
