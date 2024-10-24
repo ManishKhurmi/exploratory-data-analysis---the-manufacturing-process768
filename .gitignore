@@ -1,6 +1,6 @@
 # Credentials 
 credentials.yaml
-
+.DS_Store
 # Folders 
 __pycache__/
 .vscode/
