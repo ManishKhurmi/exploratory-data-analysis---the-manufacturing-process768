@@ -1,6 +1,6 @@
 # Exploratory Data Analysis - The Manufacturing Process
 
-## Table of Contents
+## Contents
 1. [Installation Instructions](#installation-instructions)
    - [Option 1: Using Conda (Basic Setup - No Database Integration)](#option-1-using-conda-basic-setup---no-database-integration)
    - [Option 2: Using Conda (Full Setup - Includes Database Integration)](#option-2-using-conda-full-setup---includes-database-integration)
