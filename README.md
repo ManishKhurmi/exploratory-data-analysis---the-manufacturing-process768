@@ -8,6 +8,7 @@
    - [Option 4: Using a Python Virtual Environment (Basic Setup - No Database Integration)](#option-4-using-a-python-virtual-environment-basic-setup---no-database-integration)
    - [Option 5: Using a Python Virtual Environment (Full Setup - Includes Database Integration)](#option-5-using-a-python-virtual-environment-full-setup---includes-database-integration)
 2. [Project Description](#project-description)
+3. [Key Results](#key-results)
 3. [Usage Instructions](#usage-instructions)
 4. [File Structure of the Project](#file-structure-of-the-project)
 5. [Project Workflow](#project-workflow)
@@ -52,6 +53,14 @@ pip install -r requirements_with_db.txt
 This project focuses on optimising a key manufacturing process for a large industrial company, aiming to improve efficiency and profitability by reducing waste and maximising output. Using logistic regression to predict machine failure and analysing the local minima of the second derivative of machine performance, I derived operational thresholds to prevent failures and enhance performance.
 
 The dataset contains information from 10,000 production sessions, including machine states and failure reasons. By identifying optimal operating thresholds, the analysis offers a clear understanding of when and why the machinery is likely to fail, allowing the company to take proactive steps to reduce the failure rate and increase productivity.
+
+### Key Results
+
+Logistic Regression & Finding the Local Minima
+![alt text](<result_1.png>)
+
+Creating Thresholds based on the Local Minima & Business 
+![alt text](<result_2.png>)
 
  What I Learned:
 
